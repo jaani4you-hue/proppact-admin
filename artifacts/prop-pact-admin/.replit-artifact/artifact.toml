@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "PropPact Admin"
+version = "1.0.0"
+id = "artifacts/prop-pact-admin"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24095
+
+[services.development]
+run = "pnpm --filter @workspace/prop-pact-admin run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/prop-pact-admin", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/prop-pact-admin/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24095"
+BASE_PATH = "/"
