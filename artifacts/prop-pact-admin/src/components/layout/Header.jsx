@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Menu, Search, Bell, ChevronDown, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useNotificationCount } from '../../hooks/useNotificationCount.js';
 
 const routeLabels = {
   '/admin': 'Dashboard',
