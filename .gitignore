@@ -47,3 +47,32 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+# Environment files
+.env
+.env.local
+.env.*
+!.env.example
+
+# Firebase
+firebase-debug.log
+.firebaserc.local
+
+# Build
+build/
+
+# Logs
+*.log
+
+# OS
+Desktop.ini
+
+# Local database
+*.sqlite
+*.sqlite3
+
+# Temporary
+*.tmp
+*.bak
+
+# Replit
+.replit.history
