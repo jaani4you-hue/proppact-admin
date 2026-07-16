@@ -7,6 +7,9 @@ import Dashboard from './pages/Dashboard.jsx';
 import DealerList from './pages/dealers/DealerList.jsx';
 import DealerForm from './pages/dealers/DealerForm.jsx';
 import DealerDetails from './pages/dealers/DealerDetails.jsx';
+import OwnerList from './pages/owners/OwnerList.jsx';
+import OwnerForm from './pages/owners/OwnerForm.jsx';
+import OwnerDetails from './pages/owners/OwnerDetails.jsx';
 
 // Placeholder page for sections not yet built
 function PlaceholderPage({ title }) {
@@ -50,6 +53,12 @@ export default function App() {
             <Route path="dealers/new"      element={<DealerForm />} />
             <Route path="dealers/:id"      element={<DealerDetails />} />
             <Route path="dealers/:id/edit" element={<DealerForm />} />
+
+            {/* ── Owners ── */}
+            <Route path="owners"          element={<OwnerList />} />
+            <Route path="owners/new"      element={<OwnerForm />} />
+            <Route path="owners/:id"      element={<OwnerDetails />} />
+            <Route path="owners/:id/edit" element={<OwnerForm />} />
 
             <Route path="verification"  element={<PlaceholderPage title="Verification Requests" />} />
             <Route path="legal"         element={<PlaceholderPage title="Legal Requests" />} />

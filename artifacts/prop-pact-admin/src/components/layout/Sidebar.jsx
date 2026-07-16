@@ -4,6 +4,7 @@ import {
   Building2,
   FolderOpen,
   Users,
+  UserCheck,
   Handshake,
   ShieldCheck,
   Scale,
@@ -23,6 +24,7 @@ const navItems = [
   { icon: Building2,       label: 'Properties', path: '/admin/properties' },
   { icon: FolderOpen,      label: 'Projects',   path: '/admin/projects' },
   { icon: Users,           label: 'Users',      path: '/admin/users' },
+  { icon: UserCheck,       label: 'Owners',     path: '/admin/owners' },
   { icon: Handshake,       label: 'Dealers',    path: '/admin/dealers' },
   {
     icon: ShieldCheck,
