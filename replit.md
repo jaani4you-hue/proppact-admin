@@ -12,12 +12,12 @@ A property management admin panel built with React + Vite, Firebase Auth, Firest
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- pnpm workspaces, Node.js 20, TypeScript 5.9
+- Frontend: React 19 + Vite 7, Tailwind CSS v4, shadcn/ui (Radix primitives)
+- Auth / DB / Storage: Firebase (Authentication, Firestore, Storage)
+- Routing: react-router-dom v7
+- Data fetching: TanStack React Query
+- Build: Vite (dev + static production build)
 
 ## Where things live
 
