@@ -13,6 +13,9 @@ import OwnerDetails from './pages/owners/OwnerDetails.jsx';
 import TenantList from './pages/tenants/TenantList.jsx';
 import TenantForm from './pages/tenants/TenantForm.jsx';
 import TenantDetails from './pages/tenants/TenantDetails.jsx';
+import UserList from './pages/users/UserList.jsx';
+import UserForm from './pages/users/UserForm.jsx';
+import UserDetails from './pages/users/UserDetails.jsx';
 
 // Placeholder page for sections not yet built
 function PlaceholderPage({ title }) {
@@ -49,7 +52,12 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="properties"   element={<PlaceholderPage title="Properties" />} />
             <Route path="projects"     element={<PlaceholderPage title="Projects" />} />
-            <Route path="users"        element={<PlaceholderPage title="Users" />} />
+
+            {/* ── Users ── */}
+            <Route path="users"          element={<UserList />} />
+            <Route path="users/new"      element={<UserForm />} />
+            <Route path="users/:id"      element={<UserDetails />} />
+            <Route path="users/:id/edit" element={<UserForm />} />
 
             {/* ── Dealers ── */}
             <Route path="dealers"          element={<DealerList />} />
