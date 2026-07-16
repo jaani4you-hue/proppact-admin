@@ -1,15 +1,14 @@
-# [Project name]
+# PropPact Admin
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A property management admin panel built with React + Vite, Firebase Auth, Firestore, and Firebase Storage.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- **Frontend (active):** `PORT=5173 BASE_PATH=/ pnpm --filter @workspace/prop-pact-admin run dev` — React + Vite admin UI on port 5173 (configured as the "PropPact Admin" workflow)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required secrets: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`
+- The Express API server (`artifacts/api-server`) and PostgreSQL/DATABASE_URL are **not in use** — this project uses Firebase exclusively.
 
 ## Stack
 
