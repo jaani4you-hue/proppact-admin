@@ -1,21 +1,32 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
-import Login from './pages/Login.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AdminLayout from './components/layout/AdminLayout.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import DealerList from './pages/dealers/DealerList.jsx';
-import DealerForm from './pages/dealers/DealerForm.jsx';
-import DealerDetails from './pages/dealers/DealerDetails.jsx';
-import OwnerList from './pages/owners/OwnerList.jsx';
-import OwnerForm from './pages/owners/OwnerForm.jsx';
-import OwnerDetails from './pages/owners/OwnerDetails.jsx';
-import TenantList from './pages/tenants/TenantList.jsx';
-import TenantForm from './pages/tenants/TenantForm.jsx';
-import TenantDetails from './pages/tenants/TenantDetails.jsx';
-import UserList from './pages/users/UserList.jsx';
-import UserForm from './pages/users/UserForm.jsx';
-import UserDetails from './pages/users/UserDetails.jsx';
+
+// Page-level code splitting — each group loads only when its route is visited
+const Login       = lazy(() => import('./pages/Login.jsx'));
+const Dashboard   = lazy(() => import('./pages/Dashboard.jsx'));
+const DealerList    = lazy(() => import('./pages/dealers/DealerList.jsx'));
+const DealerForm    = lazy(() => import('./pages/dealers/DealerForm.jsx'));
+const DealerDetails = lazy(() => import('./pages/dealers/DealerDetails.jsx'));
+const OwnerList     = lazy(() => import('./pages/owners/OwnerList.jsx'));
+const OwnerForm     = lazy(() => import('./pages/owners/OwnerForm.jsx'));
+const OwnerDetails  = lazy(() => import('./pages/owners/OwnerDetails.jsx'));
+const TenantList    = lazy(() => import('./pages/tenants/TenantList.jsx'));
+const TenantForm    = lazy(() => import('./pages/tenants/TenantForm.jsx'));
+const TenantDetails = lazy(() => import('./pages/tenants/TenantDetails.jsx'));
+const UserList      = lazy(() => import('./pages/users/UserList.jsx'));
+const UserForm      = lazy(() => import('./pages/users/UserForm.jsx'));
+const UserDetails   = lazy(() => import('./pages/users/UserDetails.jsx'));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-400 border-t-transparent" />
+    </div>
+  );
+}
 
 // Placeholder page for sections not yet built
 function PlaceholderPage({ title }) {
@@ -36,6 +47,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
@@ -89,6 +101,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/admin" replace />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );
