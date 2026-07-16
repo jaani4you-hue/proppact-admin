@@ -20,6 +20,11 @@ const UserList      = lazy(() => import('./pages/users/UserList.jsx'));
 const UserForm      = lazy(() => import('./pages/users/UserForm.jsx'));
 const UserDetails   = lazy(() => import('./pages/users/UserDetails.jsx'));
 
+// ── Verification module ──
+const VerificationList    = lazy(() => import('./pages/verification/VerificationList.jsx'));
+const VerificationDetails = lazy(() => import('./pages/verification/VerificationDetails.jsx'));
+const VerificationForm    = lazy(() => import('./pages/verification/VerificationForm.jsx'));
+
 function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -89,7 +94,10 @@ export default function App() {
             <Route path="tenants/:id"      element={<TenantDetails />} />
             <Route path="tenants/:id/edit" element={<TenantForm />} />
 
-            <Route path="verification"  element={<PlaceholderPage title="Verification Requests" />} />
+            {/* ── Verification ── */}
+            <Route path="verification"          element={<VerificationList />} />
+            <Route path="verification/new"      element={<VerificationForm />} />
+            <Route path="verification/:id"      element={<VerificationDetails />} />
             <Route path="legal"         element={<PlaceholderPage title="Legal Requests" />} />
             <Route path="rent"          element={<PlaceholderPage title="Rent" />} />
             <Route path="notifications" element={<PlaceholderPage title="Notifications" />} />

@@ -19,35 +19,38 @@ import {
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase.js';
+import { usePendingVerificationCount } from '../../hooks/usePendingVerificationCount.js';
 
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
-  { icon: Building2,       label: 'Properties', path: '/admin/properties' },
-  { icon: FolderOpen,      label: 'Projects',   path: '/admin/projects' },
-  { icon: Users,           label: 'Users',      path: '/admin/users' },
-  { icon: UserCheck,       label: 'Owners',     path: '/admin/owners'   },
-  { icon: Users2,          label: 'Tenants',    path: '/admin/tenants'  },
-  { icon: Handshake,       label: 'Dealers',    path: '/admin/dealers'  },
-  {
-    icon: ShieldCheck,
-    label: 'Verification Requests',
-    path: '/admin/verification',
-    badge: 23,
-  },
-  {
-    icon: Scale,
-    label: 'Legal Requests',
-    path: '/admin/legal',
-    badge: 8,
-  },
-  { icon: KeyRound,  label: 'Rent',          path: '/admin/rent' },
-  { icon: Bell,      label: 'Notifications', path: '/admin/notifications', badge: 5 },
-  { icon: BarChart3, label: 'Reports',       path: '/admin/reports' },
-  { icon: Settings,  label: 'Settings',      path: '/admin/settings' },
+const STATIC_NAV = [
+  { icon: LayoutDashboard, label: 'Dashboard',              path: '/admin' },
+  { icon: Building2,       label: 'Properties',             path: '/admin/properties' },
+  { icon: FolderOpen,      label: 'Projects',               path: '/admin/projects' },
+  { icon: Users,           label: 'Users',                  path: '/admin/users' },
+  { icon: UserCheck,       label: 'Owners',                 path: '/admin/owners'   },
+  { icon: Users2,          label: 'Tenants',                path: '/admin/tenants'  },
+  { icon: Handshake,       label: 'Dealers',                path: '/admin/dealers'  },
+  { icon: ShieldCheck,     label: 'Verification Requests',  path: '/admin/verification', badgeKey: 'verification' },
+  { icon: Scale,           label: 'Legal Requests',         path: '/admin/legal',        badge: 8 },
+  { icon: KeyRound,        label: 'Rent',                   path: '/admin/rent' },
+  { icon: Bell,            label: 'Notifications',          path: '/admin/notifications', badge: 5 },
+  { icon: BarChart3,       label: 'Reports',                path: '/admin/reports' },
+  { icon: Settings,        label: 'Settings',               path: '/admin/settings' },
 ];
 
 export default function Sidebar({ open, onClose }) {
   const navigate = useNavigate();
+  const pendingVerificationCount = usePendingVerificationCount();
+
+  // Build nav items, injecting live counts for dynamic badges
+  const navItems = STATIC_NAV.map((item) => {
+    if (item.badgeKey === 'verification') {
+      return {
+        ...item,
+        badge: pendingVerificationCount ?? undefined,
+      };
+    }
+    return item;
+  });
 
   async function handleLogout() {
     await signOut(auth);
@@ -126,7 +129,7 @@ export default function Sidebar({ open, onClose }) {
                     ].join(' ')}
                   />
                   <span className="flex-1 truncate">{label}</span>
-                  {badge !== undefined && (
+                  {badge !== undefined && badge > 0 && (
                     <span
                       className={[
                         'ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold',
