@@ -4,6 +4,9 @@ import Login from './pages/Login.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AdminLayout from './components/layout/AdminLayout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import DealerList from './pages/dealers/DealerList.jsx';
+import DealerForm from './pages/dealers/DealerForm.jsx';
+import DealerDetails from './pages/dealers/DealerDetails.jsx';
 
 // Placeholder page for sections not yet built
 function PlaceholderPage({ title }) {
@@ -38,16 +41,22 @@ export default function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="properties"  element={<PlaceholderPage title="Properties" />} />
-            <Route path="projects"    element={<PlaceholderPage title="Projects" />} />
-            <Route path="users"       element={<PlaceholderPage title="Users" />} />
-            <Route path="dealers"     element={<PlaceholderPage title="Dealers" />} />
-            <Route path="verification" element={<PlaceholderPage title="Verification Requests" />} />
-            <Route path="legal"       element={<PlaceholderPage title="Legal Requests" />} />
-            <Route path="rent"        element={<PlaceholderPage title="Rent" />} />
+            <Route path="properties"   element={<PlaceholderPage title="Properties" />} />
+            <Route path="projects"     element={<PlaceholderPage title="Projects" />} />
+            <Route path="users"        element={<PlaceholderPage title="Users" />} />
+
+            {/* ── Dealers ── */}
+            <Route path="dealers"          element={<DealerList />} />
+            <Route path="dealers/new"      element={<DealerForm />} />
+            <Route path="dealers/:id"      element={<DealerDetails />} />
+            <Route path="dealers/:id/edit" element={<DealerForm />} />
+
+            <Route path="verification"  element={<PlaceholderPage title="Verification Requests" />} />
+            <Route path="legal"         element={<PlaceholderPage title="Legal Requests" />} />
+            <Route path="rent"          element={<PlaceholderPage title="Rent" />} />
             <Route path="notifications" element={<PlaceholderPage title="Notifications" />} />
-            <Route path="reports"     element={<PlaceholderPage title="Reports" />} />
-            <Route path="settings"    element={<PlaceholderPage title="Settings" />} />
+            <Route path="reports"       element={<PlaceholderPage title="Reports" />} />
+            <Route path="settings"      element={<PlaceholderPage title="Settings" />} />
           </Route>
 
           {/* Catch-all */}
