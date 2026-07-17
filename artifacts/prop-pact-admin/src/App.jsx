@@ -7,6 +7,11 @@ import AdminLayout from './components/layout/AdminLayout.jsx';
 // Page-level code splitting — each group loads only when its route is visited
 const Login       = lazy(() => import('./pages/Login.jsx'));
 const Dashboard   = lazy(() => import('./pages/Dashboard.jsx'));
+
+// ── Properties module ──
+const PropertyList    = lazy(() => import('./pages/properties/PropertyList.jsx'));
+const PropertyForm    = lazy(() => import('./pages/properties/PropertyForm.jsx'));
+const PropertyDetails = lazy(() => import('./pages/properties/PropertyDetails.jsx'));
 const DealerList    = lazy(() => import('./pages/dealers/DealerList.jsx'));
 const DealerForm    = lazy(() => import('./pages/dealers/DealerForm.jsx'));
 const DealerDetails = lazy(() => import('./pages/dealers/DealerDetails.jsx'));
@@ -67,7 +72,11 @@ export default function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="properties"   element={<PlaceholderPage title="Properties" />} />
+            {/* ── Properties ── */}
+            <Route path="properties"          element={<PropertyList />} />
+            <Route path="properties/new"      element={<PropertyForm />} />
+            <Route path="properties/:id"      element={<PropertyDetails />} />
+            <Route path="properties/:id/edit" element={<PropertyForm />} />
             <Route path="projects"     element={<PlaceholderPage title="Projects" />} />
 
             {/* ── Users ── */}
