@@ -18,6 +18,11 @@ const RentList    = lazy(() => import('./pages/rent/RentList.jsx'));
 const RentForm    = lazy(() => import('./pages/rent/RentForm.jsx'));
 const RentDetails = lazy(() => import('./pages/rent/RentDetails.jsx'));
 const RentReports = lazy(() => import('./pages/rent/RentReports.jsx'));
+
+// ── Legal module ──
+const LegalList    = lazy(() => import('./pages/legal/LegalList.jsx'));
+const LegalForm    = lazy(() => import('./pages/legal/LegalForm.jsx'));
+const LegalDetails = lazy(() => import('./pages/legal/LegalDetails.jsx'));
 const DealerList    = lazy(() => import('./pages/dealers/DealerList.jsx'));
 const DealerForm    = lazy(() => import('./pages/dealers/DealerForm.jsx'));
 const DealerDetails = lazy(() => import('./pages/dealers/DealerDetails.jsx'));
@@ -113,7 +118,11 @@ export default function App() {
             <Route path="verification"          element={<VerificationList />} />
             <Route path="verification/new"      element={<VerificationForm />} />
             <Route path="verification/:id"      element={<VerificationDetails />} />
-            <Route path="legal"         element={<PlaceholderPage title="Legal Requests" />} />
+            {/* ── Legal ── */}
+            <Route path="legal"               element={<LegalList />} />
+            <Route path="legal/new"           element={<LegalForm />} />
+            <Route path="legal/:id"           element={<LegalDetails />} />
+            <Route path="legal/:id/edit"      element={<LegalForm />} />
             {/* ── Rent ── */}
             <Route path="rent"                element={<RentList />} />
             <Route path="rent/new"            element={<RentForm />} />

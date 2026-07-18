@@ -30,7 +30,7 @@ const STATIC_NAV = [
   { icon: Users2,          label: 'Tenants',                path: '/admin/tenants'  },
   { icon: Handshake,       label: 'Dealers',                path: '/admin/dealers'  },
   { icon: ShieldCheck,     label: 'Verification Requests',  path: '/admin/verification', badgeKey: 'verification' },
-  { icon: Scale,           label: 'Legal Requests',         path: '/admin/legal',        badge: 8 },
+  { icon: Scale,           label: 'Legal',                  path: '/admin/legal' },
   { icon: KeyRound,        label: 'Rent',                   path: '/admin/rent' },
   { icon: Bell,            label: 'Notifications',          path: '/admin/notifications', badge: 5 },
   { icon: BarChart3,       label: 'Reports',                path: '/admin/reports' },
