@@ -1,0 +1,183 @@
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+  where,
+} from 'firebase/firestore';
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from 'firebase/storage';
+import { db, storage } from '../firebase/firebase.js';
+
+const MNT_COL = 'maintenanceRequests';
+
+// ── Number generator ──────────────────────────────────────────────────────────
+
+export function generateMaintenanceNumber() {
+  const now  = new Date();
+  const yy   = now.getFullYear().toString().slice(2);
+  const mm   = String(now.getMonth() + 1).padStart(2, '0');
+  const rand = Math.floor(Math.random() * 9000) + 1000;
+  return `MNT-${yy}${mm}-${rand}`;
+}
+
+// ── Storage helpers ───────────────────────────────────────────────────────────
+
+export async function uploadFile(file, folder = 'maintenance/attachments') {
+  const ext      = file.name.split('.').pop();
+  const safeName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const storageRef = ref(storage, `${folder}/${safeName}`);
+  const snap = await new Promise((resolve, reject) => {
+    const task = uploadBytesResumable(storageRef, file);
+    task.on('state_changed', null, reject, () => resolve(task.snapshot));
+  });
+  return {
+    url        : await getDownloadURL(snap.ref),
+    storagePath: `${folder}/${safeName}`,
+    name       : file.name,
+    size       : file.size,
+    type       : file.type,
+    uploadedAt : new Date().toISOString(),
+  };
+}
+
+async function safeDeleteFile(storagePath) {
+  if (!storagePath) return;
+  try { await deleteObject(ref(storage, storagePath)); } catch { /* already gone */ }
+}
+
+// ── Activity log ──────────────────────────────────────────────────────────────
+
+async function logActivity(action, label = '') {
+  try {
+    const now = new Date();
+    await addDoc(collection(db, 'adminLogs'), {
+      activity : action + (label ? `: ${label}` : ''),
+      user     : 'Admin',
+      module   : 'Maintenance',
+      status   : action.startsWith('Deleted') ? 'Rejected' : 'Approved',
+      timestamp: serverTimestamp(),
+      date     : now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      time     : now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    });
+  } catch { /* non-fatal */ }
+}
+
+// ── CRUD ──────────────────────────────────────────────────────────────────────
+
+export async function createMaintenanceRequest(data, attachmentFiles = []) {
+  const uploaded = await Promise.all(
+    attachmentFiles.map((f) => uploadFile(f, 'maintenance/attachments')),
+  );
+
+  const payload = {
+    ...data,
+    maintenanceNumber: data.maintenanceNumber || generateMaintenanceNumber(),
+    status           : data.status || 'Pending',
+    estimatedCost    : Number(data.estimatedCost) || 0,
+    actualCost       : Number(data.actualCost)    || 0,
+    attachments      : [...(data.attachments ?? []), ...uploaded],
+    createdAt        : serverTimestamp(),
+    updatedAt        : serverTimestamp(),
+  };
+
+  const ref2 = await addDoc(collection(db, MNT_COL), payload);
+  await logActivity('Request created', data.title);
+  return ref2.id;
+}
+
+export async function updateMaintenanceRequest(id, data, newAttachmentFiles = []) {
+  const uploaded = await Promise.all(
+    newAttachmentFiles.map((f) => uploadFile(f, 'maintenance/attachments')),
+  );
+
+  const payload = {
+    ...data,
+    estimatedCost: Number(data.estimatedCost) || 0,
+    actualCost   : Number(data.actualCost)    || 0,
+    attachments  : [...(data.attachments ?? []), ...uploaded],
+    updatedAt    : serverTimestamp(),
+  };
+
+  await updateDoc(doc(db, MNT_COL, id), payload);
+  await logActivity('Request updated', data.title);
+}
+
+export async function deleteMaintenanceRequest(id) {
+  const snap = await getDoc(doc(db, MNT_COL, id));
+  if (snap.exists()) {
+    const d = snap.data();
+    for (const f of (d.attachments ?? [])) {
+      if (f.storagePath) await safeDeleteFile(f.storagePath);
+    }
+    await logActivity('Request deleted', d.title || d.maintenanceNumber);
+  }
+  await deleteDoc(doc(db, MNT_COL, id));
+}
+
+export async function getMaintenanceRequestById(id) {
+  const snap = await getDoc(doc(db, MNT_COL, id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
+// ── Real-time subscriptions ───────────────────────────────────────────────────
+
+export function subscribeToMaintenanceRequests(
+  callback,
+  { statusFilter = 'all', priorityFilter = 'all', categoryFilter = 'all' } = {},
+) {
+  let q = query(collection(db, MNT_COL), orderBy('createdAt', 'desc'));
+
+  if (statusFilter !== 'all') {
+    q = query(
+      collection(db, MNT_COL),
+      where('status', '==', statusFilter),
+      orderBy('createdAt', 'desc'),
+    );
+  }
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      let requests = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (priorityFilter !== 'all') {
+        requests = requests.filter((r) => r.priority === priorityFilter);
+      }
+      if (categoryFilter !== 'all') {
+        requests = requests.filter((r) => r.category === categoryFilter);
+      }
+      callback({ requests, error: null });
+    },
+    (error) => callback({ requests: [], error }),
+  );
+}
+
+export function subscribeToMaintenanceRequestById(id, callback) {
+  return onSnapshot(
+    doc(db, MNT_COL, id),
+    (snap) => {
+      if (snap.exists()) callback({ request: { id: snap.id, ...snap.data() }, error: null });
+      else               callback({ request: null, error: null });
+    },
+    (error) => callback({ request: null, error }),
+  );
+}
+
+// ── Aggregate ─────────────────────────────────────────────────────────────────
+
+export async function fetchAllMaintenanceRequests() {
+  const snap = await getDocs(query(collection(db, MNT_COL), orderBy('createdAt', 'desc')));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}

@@ -46,6 +46,21 @@ const VerificationList    = lazy(() => import('./pages/verification/Verification
 const VerificationDetails = lazy(() => import('./pages/verification/VerificationDetails.jsx'));
 const VerificationForm    = lazy(() => import('./pages/verification/VerificationForm.jsx'));
 
+// ── Vendors module ──
+const VendorList    = lazy(() => import('./pages/vendors/VendorList.jsx'));
+const VendorForm    = lazy(() => import('./pages/vendors/VendorForm.jsx'));
+const VendorDetails = lazy(() => import('./pages/vendors/VendorDetails.jsx'));
+
+// ── Maintenance module ──
+const MaintenanceList    = lazy(() => import('./pages/maintenance/MaintenanceList.jsx'));
+const MaintenanceForm    = lazy(() => import('./pages/maintenance/MaintenanceForm.jsx'));
+const MaintenanceDetails = lazy(() => import('./pages/maintenance/MaintenanceDetails.jsx'));
+
+// ── Complaints module ──
+const ComplaintList    = lazy(() => import('./pages/complaints/ComplaintList.jsx'));
+const ComplaintForm    = lazy(() => import('./pages/complaints/ComplaintForm.jsx'));
+const ComplaintDetails = lazy(() => import('./pages/complaints/ComplaintDetails.jsx'));
+
 function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -138,6 +153,24 @@ export default function App() {
             <Route path="rent/reports"        element={<RentReports />} />
             <Route path="rent/:id"            element={<RentDetails />} />
             <Route path="rent/:id/edit"       element={<RentForm />} />
+            {/* ── Vendors ── */}
+            <Route path="vendors"          element={<VendorList />} />
+            <Route path="vendors/new"      element={<VendorForm />} />
+            <Route path="vendors/:id"      element={<VendorDetails />} />
+            <Route path="vendors/:id/edit" element={<VendorForm />} />
+
+            {/* ── Maintenance ── */}
+            <Route path="maintenance"          element={<MaintenanceList />} />
+            <Route path="maintenance/new"      element={<MaintenanceForm />} />
+            <Route path="maintenance/:id"      element={<MaintenanceDetails />} />
+            <Route path="maintenance/:id/edit" element={<MaintenanceForm />} />
+
+            {/* ── Complaints ── */}
+            <Route path="complaints"          element={<ComplaintList />} />
+            <Route path="complaints/new"      element={<ComplaintForm />} />
+            <Route path="complaints/:id"      element={<ComplaintDetails />} />
+            <Route path="complaints/:id/edit" element={<ComplaintForm />} />
+
             <Route path="notifications" element={<PlaceholderPage title="Notifications" />} />
             <Route path="reports"       element={<RentReports />} />
             <Route path="settings"      element={<PlaceholderPage title="Settings" />} />

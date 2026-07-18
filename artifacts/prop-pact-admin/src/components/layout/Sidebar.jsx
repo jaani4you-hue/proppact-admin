@@ -16,6 +16,9 @@ import {
   LogOut,
   X,
   HomeIcon,
+  HardHat,
+  Wrench,
+  MessageSquareWarning,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase.js';
@@ -29,10 +32,13 @@ const STATIC_NAV = [
   { icon: UserCheck,       label: 'Owners',                 path: '/admin/owners'   },
   { icon: Users2,          label: 'Tenants',                path: '/admin/tenants'  },
   { icon: Handshake,       label: 'Dealers',                path: '/admin/dealers'  },
-  { icon: ShieldCheck,     label: 'Verification Requests',  path: '/admin/verification', badgeKey: 'verification' },
-  { icon: Scale,           label: 'Legal',                  path: '/admin/legal' },
-  { icon: KeyRound,        label: 'Rent',                   path: '/admin/rent' },
-  { icon: Bell,            label: 'Notifications',          path: '/admin/notifications', badge: 5 },
+  { icon: ShieldCheck,           label: 'Verification Requests',  path: '/admin/verification', badgeKey: 'verification' },
+  { icon: Scale,                 label: 'Legal',                  path: '/admin/legal' },
+  { icon: KeyRound,              label: 'Rent',                   path: '/admin/rent' },
+  { icon: MessageSquareWarning,  label: 'Complaints',             path: '/admin/complaints' },
+  { icon: Wrench,                label: 'Maintenance',            path: '/admin/maintenance' },
+  { icon: HardHat,               label: 'Vendors',                path: '/admin/vendors' },
+  { icon: Bell,                  label: 'Notifications',          path: '/admin/notifications', badge: 5 },
   { icon: BarChart3,       label: 'Reports',                path: '/admin/reports' },
   { icon: Settings,        label: 'Settings',               path: '/admin/settings' },
 ];
