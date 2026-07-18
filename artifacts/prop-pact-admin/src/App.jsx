@@ -23,6 +23,11 @@ const RentReports = lazy(() => import('./pages/rent/RentReports.jsx'));
 const LegalList    = lazy(() => import('./pages/legal/LegalList.jsx'));
 const LegalForm    = lazy(() => import('./pages/legal/LegalForm.jsx'));
 const LegalDetails = lazy(() => import('./pages/legal/LegalDetails.jsx'));
+
+// ── Projects module ──
+const ProjectList    = lazy(() => import('./pages/projects/ProjectList.jsx'));
+const ProjectForm    = lazy(() => import('./pages/projects/ProjectForm.jsx'));
+const ProjectDetails = lazy(() => import('./pages/projects/ProjectDetails.jsx'));
 const DealerList    = lazy(() => import('./pages/dealers/DealerList.jsx'));
 const DealerForm    = lazy(() => import('./pages/dealers/DealerForm.jsx'));
 const DealerDetails = lazy(() => import('./pages/dealers/DealerDetails.jsx'));
@@ -88,7 +93,11 @@ export default function App() {
             <Route path="properties/new"      element={<PropertyForm />} />
             <Route path="properties/:id"      element={<PropertyDetails />} />
             <Route path="properties/:id/edit" element={<PropertyForm />} />
-            <Route path="projects"     element={<PlaceholderPage title="Projects" />} />
+            {/* ── Projects & Societies ── */}
+            <Route path="projects"               element={<ProjectList />} />
+            <Route path="projects/new"           element={<ProjectForm />} />
+            <Route path="projects/:id"           element={<ProjectDetails />} />
+            <Route path="projects/:id/edit"      element={<ProjectForm />} />
 
             {/* ── Users ── */}
             <Route path="users"          element={<UserList />} />
