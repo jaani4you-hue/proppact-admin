@@ -12,6 +12,12 @@ const Dashboard   = lazy(() => import('./pages/Dashboard.jsx'));
 const PropertyList    = lazy(() => import('./pages/properties/PropertyList.jsx'));
 const PropertyForm    = lazy(() => import('./pages/properties/PropertyForm.jsx'));
 const PropertyDetails = lazy(() => import('./pages/properties/PropertyDetails.jsx'));
+
+// ── Rent module ──
+const RentList    = lazy(() => import('./pages/rent/RentList.jsx'));
+const RentForm    = lazy(() => import('./pages/rent/RentForm.jsx'));
+const RentDetails = lazy(() => import('./pages/rent/RentDetails.jsx'));
+const RentReports = lazy(() => import('./pages/rent/RentReports.jsx'));
 const DealerList    = lazy(() => import('./pages/dealers/DealerList.jsx'));
 const DealerForm    = lazy(() => import('./pages/dealers/DealerForm.jsx'));
 const DealerDetails = lazy(() => import('./pages/dealers/DealerDetails.jsx'));
@@ -108,9 +114,14 @@ export default function App() {
             <Route path="verification/new"      element={<VerificationForm />} />
             <Route path="verification/:id"      element={<VerificationDetails />} />
             <Route path="legal"         element={<PlaceholderPage title="Legal Requests" />} />
-            <Route path="rent"          element={<PlaceholderPage title="Rent" />} />
+            {/* ── Rent ── */}
+            <Route path="rent"                element={<RentList />} />
+            <Route path="rent/new"            element={<RentForm />} />
+            <Route path="rent/reports"        element={<RentReports />} />
+            <Route path="rent/:id"            element={<RentDetails />} />
+            <Route path="rent/:id/edit"       element={<RentForm />} />
             <Route path="notifications" element={<PlaceholderPage title="Notifications" />} />
-            <Route path="reports"       element={<PlaceholderPage title="Reports" />} />
+            <Route path="reports"       element={<RentReports />} />
             <Route path="settings"      element={<PlaceholderPage title="Settings" />} />
           </Route>
 
