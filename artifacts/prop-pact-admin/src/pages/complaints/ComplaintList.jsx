@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight,
-  MessageSquareWarning, CheckCircle2, Clock, XCircle, AlertTriangle, Link2, Zap,
+  MessageSquareWarning, CheckCircle2, Clock, AlertTriangle, Link2,
 } from 'lucide-react';
 import { useComplaints } from '../../hooks/useComplaints.js';
 import ComplaintStatusBadge from '../../components/complaints/ComplaintStatusBadge.jsx';
@@ -10,7 +10,7 @@ import ComplaintPriorityBadge from '../../components/complaints/ComplaintPriorit
 import { ComplaintSkeletonTable } from '../../components/complaints/ComplaintSkeletonTable.jsx';
 import ComplaintDeleteDialog from '../../components/complaints/ComplaintDeleteDialog.jsx';
 
-const STATUS_FILTERS   = ['all', 'Open', 'In Progress', 'Resolved', 'Closed', 'Rejected'];
+const STATUS_FILTERS   = ['all', 'Open', 'Under Review', 'In Progress', 'Resolved', 'Closed', 'Rejected'];
 const PRIORITY_FILTERS = ['all', 'Low', 'Medium', 'High', 'Critical'];
 const CATEGORIES = [
   'all', 'Water/Plumbing', 'Electrical', 'Structural/Civil', 'Noise/Disturbance',
@@ -79,12 +79,12 @@ export default function ComplaintList() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard icon={MessageSquareWarning} label="Total"       value={stats.total}      color="orange" />
-        <StatCard icon={AlertTriangle}        label="Open"        value={stats.open}       color="red"    />
-        <StatCard icon={Clock}                label="In Progress" value={stats.inProgress} color="yellow" />
-        <StatCard icon={CheckCircle2}         label="Resolved"    value={stats.resolved}   color="green"  />
-        <StatCard icon={Zap}                  label="Critical"    value={stats.critical}   color="red"    />
-        <StatCard icon={Link2}                label="Linked"      value={stats.linked}     color="blue"   />
+        <StatCard icon={MessageSquareWarning} label="Total"        value={stats.total}       color="orange" />
+        <StatCard icon={AlertTriangle}        label="Open"         value={stats.open}        color="red"    />
+        <StatCard icon={Clock}                label="Under Review" value={stats.underReview} color="yellow" />
+        <StatCard icon={Clock}                label="In Progress"  value={stats.inProgress}  color="yellow" />
+        <StatCard icon={CheckCircle2}         label="Resolved"     value={stats.resolved}    color="green"  />
+        <StatCard icon={Link2}                label="Linked"       value={stats.linked}      color="blue"   />
       </div>
 
       {/* Filters */}

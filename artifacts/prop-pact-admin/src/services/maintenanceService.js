@@ -19,6 +19,8 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { db, storage } from '../firebase/firebase.js';
+import { resolveComplaintFromMaintenance } from './complaintService.js';
+import { addComplaintHistory } from './complaintHistoryService.js';
 
 const MNT_COL = 'maintenanceRequests';
 
@@ -94,6 +96,17 @@ export async function createMaintenanceRequest(data, attachmentFiles = []) {
 
   const ref2 = await addDoc(collection(db, MNT_COL), payload);
   await logActivity('Request created', data.title);
+
+  // Log history on the linked complaint
+  if (data.complaintId) {
+    await addComplaintHistory(data.complaintId, {
+      action    : 'Work order created',
+      note      : `${payload.maintenanceNumber} — ${data.title}`,
+      fromStatus: 'In Progress',
+      toStatus  : 'In Progress',
+    });
+  }
+
   return ref2.id;
 }
 
@@ -101,6 +114,11 @@ export async function updateMaintenanceRequest(id, data, newAttachmentFiles = []
   const uploaded = await Promise.all(
     newAttachmentFiles.map((f) => uploadFile(f, 'maintenance/attachments')),
   );
+
+  // Snapshot before update to detect status change
+  const prevSnap = await getDoc(doc(db, MNT_COL, id));
+  const prev = prevSnap.exists() ? prevSnap.data() : {};
+  const prevStatus = prev.status || '';
 
   const payload = {
     ...data,
@@ -110,8 +128,32 @@ export async function updateMaintenanceRequest(id, data, newAttachmentFiles = []
     updatedAt    : serverTimestamp(),
   };
 
+  // Set completedDate automatically
+  if (data.status === 'Completed' && !data.completedDate) {
+    payload.completedDate = new Date().toISOString().slice(0, 10);
+  }
+
   await updateDoc(doc(db, MNT_COL, id), payload);
   await logActivity('Request updated', data.title);
+
+  // If newly assigned vendor, log on complaint
+  if (data.complaintId && data.assignedVendorName && !prev.assignedVendorName) {
+    await addComplaintHistory(data.complaintId, {
+      action    : 'Vendor assigned',
+      note      : `${data.assignedVendorName} assigned to work order ${data.maintenanceNumber || prev.maintenanceNumber}`,
+      fromStatus: 'In Progress',
+      toStatus  : 'In Progress',
+    });
+  }
+
+  // Auto-resolve linked complaint when work is Completed
+  if (data.status === 'Completed' && prevStatus !== 'Completed') {
+    const complaintId = data.complaintId || prev.complaintId;
+    const mntNumber   = data.maintenanceNumber || prev.maintenanceNumber;
+    if (complaintId) {
+      await resolveComplaintFromMaintenance(complaintId, mntNumber);
+    }
+  }
 }
 
 export async function deleteMaintenanceRequest(id) {

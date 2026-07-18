@@ -13,7 +13,7 @@ const CATEGORIES = [
   'Cleaning/Hygiene', 'Security', 'Lift/Elevator', 'Parking', 'Common Area', 'Other',
 ];
 const PRIORITIES         = ['Low', 'Medium', 'High', 'Critical'];
-const STATUSES           = ['Open', 'In Progress', 'Resolved', 'Closed', 'Rejected'];
+const STATUSES           = ['Open', 'Under Review', 'In Progress', 'Resolved', 'Closed', 'Rejected'];
 const COMPLAINANT_TYPES  = ['Tenant', 'Owner', 'Other'];
 
 const EMPTY = {

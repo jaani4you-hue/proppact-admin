@@ -19,6 +19,7 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { db, storage } from '../firebase/firebase.js';
+import { addComplaintHistory } from './complaintHistoryService.js';
 
 const CMP_COL = 'complaints';
 
@@ -81,10 +82,11 @@ export async function createComplaint(data, attachmentFiles = []) {
     attachmentFiles.map((f) => uploadFile(f, 'complaints/attachments')),
   );
 
+  const initialStatus = data.status || 'Open';
   const payload = {
     ...data,
     complaintNumber: data.complaintNumber || generateComplaintNumber(),
-    status         : data.status || 'Open',
+    status         : initialStatus,
     attachments    : [...(data.attachments ?? []), ...uploaded],
     createdAt      : serverTimestamp(),
     updatedAt      : serverTimestamp(),
@@ -92,6 +94,15 @@ export async function createComplaint(data, attachmentFiles = []) {
 
   const ref2 = await addDoc(collection(db, CMP_COL), payload);
   await logActivity('Complaint created', data.title);
+
+  // Seed history
+  await addComplaintHistory(ref2.id, {
+    action    : 'Complaint filed',
+    note      : data.title || '',
+    fromStatus: '',
+    toStatus  : initialStatus,
+  });
+
   return ref2.id;
 }
 
@@ -100,19 +111,40 @@ export async function updateComplaint(id, data, newAttachmentFiles = []) {
     newAttachmentFiles.map((f) => uploadFile(f, 'complaints/attachments')),
   );
 
+  // Fetch current state to detect status change
+  const prevSnap = await getDoc(doc(db, CMP_COL, id));
+  const prevStatus = prevSnap.exists() ? prevSnap.data().status : '';
+
   const payload = {
     ...data,
     attachments: [...(data.attachments ?? []), ...uploaded],
     updatedAt  : serverTimestamp(),
   };
 
-  // If resolving, set resolvedAt timestamp
+  // Set resolvedAt timestamp when resolving
   if (data.status === 'Resolved' && !data.resolvedAt) {
     payload.resolvedAt = new Date().toISOString();
   }
 
   await updateDoc(doc(db, CMP_COL, id), payload);
   await logActivity('Complaint updated', data.title);
+
+  // Log history if status changed
+  if (data.status && data.status !== prevStatus) {
+    const actionMap = {
+      'Under Review': 'Sent for owner review',
+      'In Progress' : 'Work order / vendor assigned',
+      'Resolved'    : 'Complaint resolved',
+      'Closed'      : 'Complaint closed',
+      'Rejected'    : 'Complaint rejected',
+    };
+    await addComplaintHistory(id, {
+      action    : actionMap[data.status] || 'Status updated',
+      fromStatus: prevStatus,
+      toStatus  : data.status,
+      note      : data.resolutionNotes || '',
+    });
+  }
 }
 
 export async function deleteComplaint(id) {
@@ -133,7 +165,37 @@ export async function getComplaintById(id) {
   return { id: snap.id, ...snap.data() };
 }
 
-// ── Link maintenance request to a complaint ───────────────────────────────────
+// ── Quick workflow status transitions ─────────────────────────────────────────
+
+export async function setComplaintStatus(id, newStatus, note = '') {
+  const prevSnap = await getDoc(doc(db, CMP_COL, id));
+  const prevStatus = prevSnap.exists() ? prevSnap.data().status : '';
+
+  const update = {
+    status   : newStatus,
+    updatedAt: serverTimestamp(),
+  };
+  if (newStatus === 'Resolved') update.resolvedAt = new Date().toISOString();
+
+  await updateDoc(doc(db, CMP_COL, id), update);
+
+  const actionMap = {
+    'Under Review': 'Sent for owner review',
+    'In Progress' : 'Work order raised / vendor assigned',
+    'Resolved'    : 'Complaint resolved',
+    'Closed'      : 'Complaint closed',
+    'Rejected'    : 'Complaint rejected',
+    'Open'        : 'Re-opened',
+  };
+  await addComplaintHistory(id, {
+    action    : actionMap[newStatus] || 'Status updated',
+    fromStatus: prevStatus,
+    toStatus  : newStatus,
+    note,
+  });
+}
+
+// ── Link a maintenance work order ─────────────────────────────────────────────
 
 export async function linkMaintenanceToComplaint(complaintId, maintenanceId, maintenanceNumber) {
   await updateDoc(doc(db, CMP_COL, complaintId), {
@@ -142,6 +204,41 @@ export async function linkMaintenanceToComplaint(complaintId, maintenanceId, mai
     status           : 'In Progress',
     updatedAt        : serverTimestamp(),
   });
+
+  const prevSnap = await getDoc(doc(db, CMP_COL, complaintId));
+  const prevStatus = prevSnap.exists() ? prevSnap.data().status : 'Open';
+
+  await addComplaintHistory(complaintId, {
+    action    : 'Maintenance work order raised',
+    note      : `Work order ${maintenanceNumber} created`,
+    fromStatus: prevStatus,
+    toStatus  : 'In Progress',
+  });
+}
+
+// ── Called by maintenanceService when a work order is marked Completed ────────
+
+export async function resolveComplaintFromMaintenance(complaintId, maintenanceNumber) {
+  if (!complaintId) return;
+  try {
+    const snap = await getDoc(doc(db, CMP_COL, complaintId));
+    if (!snap.exists()) return;
+    const prevStatus = snap.data().status || '';
+    if (['Resolved', 'Closed'].includes(prevStatus)) return; // already done
+
+    await updateDoc(doc(db, CMP_COL, complaintId), {
+      status    : 'Resolved',
+      resolvedAt: new Date().toISOString(),
+      updatedAt : serverTimestamp(),
+    });
+
+    await addComplaintHistory(complaintId, {
+      action    : 'Auto-resolved — maintenance work completed',
+      note      : `Work order ${maintenanceNumber} marked Completed`,
+      fromStatus: prevStatus,
+      toStatus  : 'Resolved',
+    });
+  } catch { /* non-fatal */ }
 }
 
 // ── Real-time subscriptions ───────────────────────────────────────────────────

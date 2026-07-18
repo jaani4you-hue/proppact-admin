@@ -1,9 +1,10 @@
 const STATUS_STYLES = {
-  Open         : 'bg-red-50     text-red-700     border-red-200',
-  'In Progress': 'bg-orange-50  text-orange-700  border-orange-200',
-  Resolved     : 'bg-green-50   text-green-700   border-green-200',
-  Closed       : 'bg-gray-50    text-gray-600    border-gray-200',
-  Rejected     : 'bg-purple-50  text-purple-700  border-purple-200',
+  Open           : 'bg-red-50     text-red-700     border-red-200',
+  'Under Review' : 'bg-yellow-50  text-yellow-700  border-yellow-200',
+  'In Progress'  : 'bg-orange-50  text-orange-700  border-orange-200',
+  Resolved       : 'bg-green-50   text-green-700   border-green-200',
+  Closed         : 'bg-gray-50    text-gray-600    border-gray-200',
+  Rejected       : 'bg-purple-50  text-purple-700  border-purple-200',
 };
 
 export default function ComplaintStatusBadge({ status }) {

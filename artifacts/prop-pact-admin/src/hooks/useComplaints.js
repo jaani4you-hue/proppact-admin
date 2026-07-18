@@ -43,16 +43,17 @@ export function useComplaints({ statusFilter = 'all', priorityFilter = 'all', ca
   const paged      = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const stats = useMemo(() => {
-    const total      = allComplaints.length;
-    const open       = allComplaints.filter((c) => c.status === 'Open').length;
-    const inProgress = allComplaints.filter((c) => c.status === 'In Progress').length;
-    const resolved   = allComplaints.filter((c) => c.status === 'Resolved').length;
-    const closed     = allComplaints.filter((c) => c.status === 'Closed').length;
-    const rejected   = allComplaints.filter((c) => c.status === 'Rejected').length;
-    const critical   = allComplaints.filter((c) => c.priority === 'Critical').length;
-    const high       = allComplaints.filter((c) => c.priority === 'High').length;
-    const linked     = allComplaints.filter((c) => c.maintenanceId).length;
-    return { total, open, inProgress, resolved, closed, rejected, critical, high, linked };
+    const total       = allComplaints.length;
+    const open        = allComplaints.filter((c) => c.status === 'Open').length;
+    const underReview = allComplaints.filter((c) => c.status === 'Under Review').length;
+    const inProgress  = allComplaints.filter((c) => c.status === 'In Progress').length;
+    const resolved    = allComplaints.filter((c) => c.status === 'Resolved').length;
+    const closed      = allComplaints.filter((c) => c.status === 'Closed').length;
+    const rejected    = allComplaints.filter((c) => c.status === 'Rejected').length;
+    const critical    = allComplaints.filter((c) => c.priority === 'Critical').length;
+    const high        = allComplaints.filter((c) => c.priority === 'High').length;
+    const linked      = allComplaints.filter((c) => c.maintenanceId).length;
+    return { total, open, underReview, inProgress, resolved, closed, rejected, critical, high, linked };
   }, [allComplaints]);
 
   return {
