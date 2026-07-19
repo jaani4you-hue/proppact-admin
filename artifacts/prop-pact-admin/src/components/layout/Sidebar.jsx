@@ -23,6 +23,7 @@ import {
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase.js';
 import { usePendingVerificationCount } from '../../hooks/usePendingVerificationCount.js';
+import { useUnreadNotificationCount } from '../../hooks/useNotifications.js';
 
 const STATIC_NAV = [
   { icon: LayoutDashboard, label: 'Dashboard',              path: '/admin' },
@@ -38,7 +39,7 @@ const STATIC_NAV = [
   { icon: MessageSquareWarning,  label: 'Complaints',             path: '/admin/complaints' },
   { icon: Wrench,                label: 'Maintenance',            path: '/admin/maintenance' },
   { icon: HardHat,               label: 'Vendors',                path: '/admin/vendors' },
-  { icon: Bell,                  label: 'Notifications',          path: '/admin/notifications', badge: 5 },
+  { icon: Bell,                  label: 'Notifications',          path: '/admin/notifications', badgeKey: 'notifications' },
   { icon: BarChart3,       label: 'Reports',                path: '/admin/reports' },
   { icon: Settings,        label: 'Settings',               path: '/admin/settings' },
 ];
@@ -46,14 +47,15 @@ const STATIC_NAV = [
 export default function Sidebar({ open, onClose }) {
   const navigate = useNavigate();
   const pendingVerificationCount = usePendingVerificationCount();
+  const unreadNotificationCount  = useUnreadNotificationCount();
 
   // Build nav items, injecting live counts for dynamic badges
   const navItems = STATIC_NAV.map((item) => {
     if (item.badgeKey === 'verification') {
-      return {
-        ...item,
-        badge: pendingVerificationCount ?? undefined,
-      };
+      return { ...item, badge: pendingVerificationCount ?? undefined };
+    }
+    if (item.badgeKey === 'notifications') {
+      return { ...item, badge: unreadNotificationCount || undefined };
     }
     return item;
   });

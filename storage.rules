@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn();
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isDocument() {
+      return request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('application/msword')
+          || request.resource.contentType.matches('application/vnd.*');
+    }
+
+    function maxSize(mb) {
+      return request.resource.size <= mb * 1024 * 1024;
+    }
+
+    // ── Branding / Logos ─────────────────────────────────────────────────────
+    // Admin uploads only; anyone authenticated can read (for display)
+
+    match /branding/{file} {
+      allow read  : if isSignedIn();
+      allow write : if isAdmin() && isImage() && maxSize(2);
+      allow delete: if isAdmin();
+    }
+
+    // ── Maintenance Attachments ───────────────────────────────────────────────
+
+    match /maintenance/attachments/{file} {
+      allow read  : if isAdmin();
+      allow write : if isAdmin() && isDocument() && maxSize(10);
+      allow delete: if isAdmin();
+    }
+
+    // ── User Photos ───────────────────────────────────────────────────────────
+
+    match /users/{userId}/{file} {
+      allow read  : if isAdmin();
+      allow write : if isAdmin() && isImage() && maxSize(5);
+      allow delete: if isAdmin();
+    }
+
+    // ── Tenant Documents ─────────────────────────────────────────────────────
+
+    match /tenants/{tenantId}/{file} {
+      allow read  : if isAdmin();
+      allow write : if isAdmin() && isDocument() && maxSize(10);
+      allow delete: if isAdmin();
+    }
+
+    // ── Owner Documents ──────────────────────────────────────────────────────
+
+    match /owners/{ownerId}/{file} {
+      allow read  : if isAdmin();
+      allow write : if isAdmin() && isDocument() && maxSize(10);
+      allow delete: if isAdmin();
+    }
+
+    // ── Property Photos ───────────────────────────────────────────────────────
+
+    match /properties/{propId}/{file} {
+      allow read  : if isAdmin();
+      allow write : if isAdmin() && isImage() && maxSize(10);
+      allow delete: if isAdmin();
+    }
+
+    // ── Legal Documents ───────────────────────────────────────────────────────
+
+    match /legal/{legalId}/{file} {
+      allow read  : if isAdmin();
+      allow write : if isAdmin() && isDocument() && maxSize(20);
+      allow delete: if isAdmin();
+    }
+
+    // ── Verification Documents ───────────────────────────────────────────────
+
+    match /verification/{docId}/{file} {
+      allow read  : if isAdmin();
+      allow write : if isAdmin() && isDocument() && maxSize(10);
+      allow delete: if isAdmin();
+    }
+
+    // ── Catch-all: deny everything else ──────────────────────────────────────
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

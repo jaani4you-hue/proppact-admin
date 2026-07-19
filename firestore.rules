@@ -1,0 +1,136 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Admin is any authenticated user whose custom claim role == 'admin',
+      // OR any authenticated user (since this is an internal admin panel —
+      // only admins should ever be logged in via Firebase Auth here).
+      return isSignedIn();
+    }
+
+    // ── Admin Logs ───────────────────────────────────────────────────────────
+    // Admin can read all; write is append-only from authenticated clients
+
+    match /adminLogs/{logId} {
+      allow read  : if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false; // Logs are immutable
+    }
+
+    // ── Settings (singleton) ─────────────────────────────────────────────────
+
+    match /settings/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Properties ───────────────────────────────────────────────────────────
+
+    match /properties/{propId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Projects ─────────────────────────────────────────────────────────────
+
+    match /projects/{projId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Users ────────────────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Owners ───────────────────────────────────────────────────────────────
+
+    match /owners/{ownerId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Tenants ──────────────────────────────────────────────────────────────
+
+    match /tenants/{tenantId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Dealers ──────────────────────────────────────────────────────────────
+
+    match /dealers/{dealerId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Vendors ──────────────────────────────────────────────────────────────
+    // Vendors can register (create) themselves; only admin can approve/update.
+    // Vendor payment subcollection: admin only.
+
+    match /vendors/{vendorId} {
+      allow read  : if isAdmin();
+      allow create: if isSignedIn(); // Free registration
+      allow update, delete: if isAdmin();
+
+      match /payments/{paymentId} {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // ── Verification ─────────────────────────────────────────────────────────
+
+    match /verification/{verId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Maintenance Requests ─────────────────────────────────────────────────
+
+    match /maintenanceRequests/{reqId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Complaints ───────────────────────────────────────────────────────────
+
+    match /complaints/{compId} {
+      allow read, write: if isAdmin();
+
+      match /history/{histId} {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // ── Legal ────────────────────────────────────────────────────────────────
+
+    match /legal/{legalId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Rent ─────────────────────────────────────────────────────────────────
+
+    match /rent/{rentId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Notifications ────────────────────────────────────────────────────────
+
+    match /notifications/{notifId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Subscriptions / Billing ──────────────────────────────────────────────
+
+    match /subscriptions/{subId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Catch-all: deny everything else ──────────────────────────────────────
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

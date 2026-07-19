@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Menu, Search, Bell, ChevronDown, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { useNotificationCount } from '../../hooks/useNotificationCount.js';
+import { useUnreadNotificationCount } from '../../hooks/useNotifications.js';
 
 const routeLabels = {
   '/admin': 'Dashboard',
@@ -41,6 +41,7 @@ export default function Header({ onMenuClick }) {
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
 
+  const unreadCount = useUnreadNotificationCount();
   const pageTitle = routeLabels[location.pathname] ?? 'Admin';
   const initials = getInitials(currentUser?.email);
   const displayEmail = currentUser?.email ?? 'admin@proppact.com';
@@ -84,9 +85,11 @@ export default function Header({ onMenuClick }) {
         {/* Notification bell */}
         <button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-500 transition-colors">
           <Bell className="h-4 w-4" />
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[9px] font-bold text-white">
-            5
-          </span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-0.5 text-[9px] font-bold text-white">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {/* Profile dropdown */}

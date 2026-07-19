@@ -12,16 +12,22 @@ const CATEGORIES = [
   'Plumber', 'Electrician', 'Civil/Structural', 'Painter', 'Carpenter',
   'HVAC', 'Pest Control', 'Cleaning', 'Lift/Elevator', 'General',
 ];
-const STATUSES = ['Active', 'Inactive', 'Blacklisted'];
+
+// Status only editable by admin on existing vendors
+const EDIT_STATUSES = ['Pending', 'Approved', 'Rejected', 'Suspended'];
 
 const EMPTY = {
   vendorCode   : '',
   name         : '',
   category     : 'Plumber',
-  status       : 'Active',
+  status       : 'Pending',
   phone        : '',
   email        : '',
   address      : '',
+  // KYC
+  aadhaarNumber: '',
+  panNumber    : '',
+  // Tax & Banking
   gstNumber    : '',
   bankName     : '',
   accountNumber: '',
@@ -84,17 +90,11 @@ function StarPicker({ value, onChange }) {
           onClick={() => onChange(s === value ? 0 : s)}
           className="p-0.5 transition-transform hover:scale-110"
         >
-          <Star
-            className={`h-6 w-6 ${s <= value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 fill-gray-100'}`}
-          />
+          <Star className={`h-6 w-6 ${s <= value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 fill-gray-100'}`} />
         </button>
       ))}
       {value > 0 && (
-        <button
-          type="button"
-          onClick={() => onChange(0)}
-          className="ml-2 text-xs text-gray-400 hover:text-gray-600"
-        >
+        <button type="button" onClick={() => onChange(0)} className="ml-2 text-xs text-gray-400 hover:text-gray-600">
           Clear
         </button>
       )}
@@ -125,6 +125,7 @@ export default function VendorForm() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.name.trim()) return setError('Vendor name is required.');
+    if (!form.phone.trim()) return setError('Phone number is required.');
     setSaving(true);
     setError(null);
     try {
@@ -159,10 +160,18 @@ export default function VendorForm() {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Vendor' : 'Add Vendor'}</h1>
-          <p className="text-sm text-gray-500">{isEdit ? 'Update vendor details.' : 'Register a new service vendor.'}</p>
+          <h1 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Vendor' : 'Register Vendor'}</h1>
+          <p className="text-sm text-gray-500">
+            {isEdit ? 'Update vendor details.' : 'Register a new service vendor. Registration is free — Admin will verify and approve.'}
+          </p>
         </div>
       </div>
+
+      {!isEdit && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Vendor will be registered with <strong>Pending</strong> status. Admin must approve before assignment to work orders.
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -176,11 +185,13 @@ export default function VendorForm() {
             <Field label="Vendor Code">
               <Input value={form.vendorCode} onChange={(e) => set('vendorCode', e.target.value)} placeholder="Auto-generated" />
             </Field>
-            <Field label="Status">
-              <Select value={form.status} onChange={(e) => set('status', e.target.value)}>
-                {STATUSES.map((s) => <option key={s}>{s}</option>)}
-              </Select>
-            </Field>
+            {isEdit && (
+              <Field label="Status">
+                <Select value={form.status} onChange={(e) => set('status', e.target.value)}>
+                  {EDIT_STATUSES.map((s) => <option key={s}>{s}</option>)}
+                </Select>
+              </Field>
+            )}
             <Field label="Vendor Name" required className="sm:col-span-2">
               <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Ramesh Plumbing Works" />
             </Field>
@@ -189,7 +200,7 @@ export default function VendorForm() {
                 {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </Select>
             </Field>
-            <Field label="Rating">
+            <Field label="Rating" hint="Admin-assigned based on work quality">
               <div className="pt-1">
                 <StarPicker value={form.rating} onChange={(v) => set('rating', v)} />
               </div>
@@ -213,11 +224,34 @@ export default function VendorForm() {
           </div>
         </div>
 
-        {/* 3. Tax & Banking */}
+        {/* 3. KYC Documents */}
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
-          <SectionTitle n={3} title="Tax & Banking" desc="For invoicing and payments" />
+          <SectionTitle n={3} title="KYC Documents" desc="Identity verification documents" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="GST Number">
+            <Field label="Aadhaar Number">
+              <Input
+                value={form.aadhaarNumber}
+                onChange={(e) => set('aadhaarNumber', e.target.value)}
+                placeholder="XXXX XXXX XXXX"
+                maxLength={14}
+              />
+            </Field>
+            <Field label="PAN Number">
+              <Input
+                value={form.panNumber}
+                onChange={(e) => set('panNumber', e.target.value.toUpperCase())}
+                placeholder="ABCDE1234F"
+                maxLength={10}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* 4. Tax & Banking */}
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
+          <SectionTitle n={4} title="Tax & Banking" desc="For invoicing and payments" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="GST Number" hint="Optional">
               <Input value={form.gstNumber} onChange={(e) => set('gstNumber', e.target.value)} placeholder="e.g. 27AAACR5055K1ZY" />
             </Field>
             <Field label="Bank Name">
@@ -227,14 +261,14 @@ export default function VendorForm() {
               <Input value={form.accountNumber} onChange={(e) => set('accountNumber', e.target.value)} placeholder="Account number" />
             </Field>
             <Field label="IFSC Code">
-              <Input value={form.ifscCode} onChange={(e) => set('ifscCode', e.target.value)} placeholder="e.g. HDFC0001234" />
+              <Input value={form.ifscCode} onChange={(e) => set('ifscCode', e.target.value.toUpperCase())} placeholder="e.g. HDFC0001234" />
             </Field>
           </div>
         </div>
 
-        {/* 4. Notes */}
+        {/* 5. Notes */}
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
-          <SectionTitle n={4} title="Notes & Remarks" />
+          <SectionTitle n={5} title="Notes & Remarks" />
           <textarea
             rows={3}
             value={form.notes}
@@ -258,7 +292,7 @@ export default function VendorForm() {
             className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-orange-500 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {saving ? 'Saving…' : isEdit ? 'Update Vendor' : 'Add Vendor'}
+            {saving ? 'Saving…' : isEdit ? 'Update Vendor' : 'Register Vendor'}
           </button>
         </div>
       </form>

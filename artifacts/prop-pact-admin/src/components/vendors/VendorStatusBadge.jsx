@@ -1,7 +1,12 @@
 const STATUS_STYLES = {
-  Active      : 'bg-green-50   text-green-700   border-green-200',
-  Inactive    : 'bg-gray-50    text-gray-600    border-gray-200',
-  Blacklisted : 'bg-red-50     text-red-700     border-red-200',
+  Pending  : 'bg-amber-50   text-amber-700   border-amber-200',
+  Approved : 'bg-green-50   text-green-700   border-green-200',
+  Rejected : 'bg-red-50     text-red-700     border-red-200',
+  Suspended: 'bg-orange-50  text-orange-700  border-orange-200',
+  // legacy — keep for any old records
+  Active      : 'bg-green-50  text-green-700  border-green-200',
+  Inactive    : 'bg-gray-50   text-gray-600   border-gray-200',
+  Blacklisted : 'bg-red-50    text-red-700    border-red-200',
 };
 
 export default function VendorStatusBadge({ status }) {

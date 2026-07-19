@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Search, Eye, Pencil, Trash2, ChevronLeft, ChevronRight,
-  HardHat, Users, CheckCircle2, XCircle, Star, BarChart3,
+  HardHat, Clock, CheckCircle2, XCircle, Star, BarChart3, BadgeCheck,
 } from 'lucide-react';
 import { useVendors } from '../../hooks/useVendors.js';
 import VendorStatusBadge from '../../components/vendors/VendorStatusBadge.jsx';
@@ -13,19 +13,19 @@ const VENDOR_CATEGORIES = [
   'all', 'Plumber', 'Electrician', 'Civil/Structural', 'Painter', 'Carpenter',
   'HVAC', 'Pest Control', 'Cleaning', 'Lift/Elevator', 'General',
 ];
-const STATUS_FILTERS = ['all', 'Active', 'Inactive', 'Blacklisted'];
+const STATUS_FILTERS = ['all', 'Pending', 'Approved', 'Rejected', 'Suspended'];
 
 function StatCard({ icon: Icon, label, value, color = 'orange' }) {
   const colors = {
     orange: 'bg-orange-50  text-orange-500  border-orange-100',
     green : 'bg-green-50   text-green-600   border-green-100',
-    gray  : 'bg-gray-50    text-gray-500    border-gray-100',
+    amber : 'bg-amber-50   text-amber-600   border-amber-100',
     red   : 'bg-red-50     text-red-500     border-red-100',
     blue  : 'bg-blue-50    text-blue-600    border-blue-100',
   };
   return (
     <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border ${colors[color] ?? colors.gray}`}>
+      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border ${colors[color] ?? colors.orange}`}>
         <Icon className="h-5 w-5" />
       </div>
       <div>
@@ -41,10 +41,7 @@ function StarRating({ rating }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          className={`h-3.5 w-3.5 ${s <= n ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'}`}
-        />
+        <Star key={s} className={`h-3.5 w-3.5 ${s <= n ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
       ))}
       {n > 0 && <span className="ml-1 text-xs text-gray-500">{n}</span>}
     </div>
@@ -69,7 +66,7 @@ export default function VendorList() {
         <div>
           <h1 className="text-xl font-bold text-gray-900">Vendor Management</h1>
           <p className="mt-0.5 text-sm text-gray-500">
-            Manage contractors and service providers for maintenance work
+            Manage and verify service vendors for maintenance work
           </p>
         </div>
         <button
@@ -83,10 +80,10 @@ export default function VendorList() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard icon={HardHat}     label="Total Vendors" value={stats.total}       color="orange" />
-        <StatCard icon={CheckCircle2} label="Active"       value={stats.active}      color="green"  />
-        <StatCard icon={XCircle}     label="Inactive"      value={stats.inactive}    color="gray"   />
-        <StatCard icon={Star}        label="Avg Rating"    value={stats.avgRating}   color="blue"   />
+        <StatCard icon={HardHat}      label="Total Vendors"  value={stats.total}    color="orange" />
+        <StatCard icon={Clock}        label="Pending Review" value={stats.pending}  color="amber"  />
+        <StatCard icon={CheckCircle2} label="Approved"       value={stats.approved} color="green"  />
+        <StatCard icon={Star}         label="Avg Rating"     value={stats.avgRating} color="blue"  />
       </div>
 
       {/* Filters */}
@@ -130,6 +127,11 @@ export default function VendorList() {
               ].join(' ')}
             >
               {s === 'all' ? 'All Statuses' : s}
+              {s === 'Pending' && stats.pending > 0 && (
+                <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">
+                  {stats.pending}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -170,7 +172,7 @@ export default function VendorList() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/60">
-                  {['Vendor', 'Category', 'Contact', 'GST', 'Status', 'Rating', ''].map((h) => (
+                  {['Vendor', 'Category', 'Contact', 'Documents', 'Status', 'Rating', ''].map((h) => (
                     <th key={h} className="py-3 px-4 text-left text-xs font-semibold text-gray-500">{h}</th>
                   ))}
                 </tr>
@@ -193,7 +195,12 @@ export default function VendorList() {
                             {(v.name || 'V')[0].toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-800 text-sm">{v.name || '—'}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-semibold text-gray-800 text-sm">{v.name || '—'}</p>
+                              {v.status === 'Approved' && (
+                                <BadgeCheck className="h-3.5 w-3.5 text-green-500 flex-shrink-0" title="Verified" />
+                              )}
+                            </div>
                             <p className="text-[11px] text-orange-500 font-mono">{v.vendorCode}</p>
                           </div>
                         </div>
@@ -208,7 +215,20 @@ export default function VendorList() {
                         {v.email && <p className="text-[11px] text-gray-400 truncate max-w-[160px]">{v.email}</p>}
                       </td>
                       <td className="py-3.5 px-4">
-                        <p className="text-xs text-gray-500 font-mono">{v.gstNumber || '—'}</p>
+                        <div className="flex gap-1 flex-wrap">
+                          {v.aadhaarNumber && (
+                            <span className="rounded-md bg-blue-50 border border-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">Aadhaar</span>
+                          )}
+                          {v.panNumber && (
+                            <span className="rounded-md bg-purple-50 border border-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-600">PAN</span>
+                          )}
+                          {v.gstNumber && (
+                            <span className="rounded-md bg-green-50 border border-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-600">GST</span>
+                          )}
+                          {!v.aadhaarNumber && !v.panNumber && !v.gstNumber && (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4">
                         <VendorStatusBadge status={v.status} />
@@ -263,7 +283,10 @@ export default function VendorList() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="font-semibold text-gray-900">{v.name || '—'}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-gray-900">{v.name || '—'}</p>
+                        {v.status === 'Approved' && <BadgeCheck className="h-3.5 w-3.5 text-green-500" />}
+                      </div>
                       <p className="text-[11px] text-orange-500 font-mono">{v.vendorCode}</p>
                     </div>
                     <VendorStatusBadge status={v.status} />

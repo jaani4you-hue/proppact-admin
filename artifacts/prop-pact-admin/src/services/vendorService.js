@@ -48,14 +48,15 @@ async function logActivity(action, label = '') {
 export async function createVendor(data) {
   const payload = {
     ...data,
-    vendorCode   : data.vendorCode || generateVendorCode(),
-    status       : data.status     || 'Active',
-    rating       : Number(data.rating) || 0,
-    createdAt    : serverTimestamp(),
-    updatedAt    : serverTimestamp(),
+    vendorCode : data.vendorCode || generateVendorCode(),
+    // New registrations always start as Pending — only Admin can approve
+    status     : 'Pending',
+    rating     : Number(data.rating) || 0,
+    createdAt  : serverTimestamp(),
+    updatedAt  : serverTimestamp(),
   };
   const ref = await addDoc(collection(db, VENDORS_COL), payload);
-  await logActivity('Vendor created', data.name);
+  await logActivity('Vendor registered', data.name);
   return ref.id;
 }
 
@@ -81,6 +82,74 @@ export async function getVendorById(id) {
   const snap = await getDoc(doc(db, VENDORS_COL, id));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
+}
+
+// ── Admin verification actions ────────────────────────────────────────────────
+
+export async function updateVendorStatus(id, status, reason = '') {
+  const snap = await getDoc(doc(db, VENDORS_COL, id));
+  const name = snap.exists() ? snap.data().name : '';
+
+  await updateDoc(doc(db, VENDORS_COL, id), {
+    status,
+    statusReason      : reason || '',
+    statusUpdatedAt   : serverTimestamp(),
+    updatedAt         : serverTimestamp(),
+  });
+
+  const actionMap = {
+    Approved : 'Vendor approved',
+    Rejected : 'Vendor rejected',
+    Suspended: 'Vendor suspended',
+    Pending  : 'Vendor reset to pending',
+  };
+  await logActivity(actionMap[status] || `Status → ${status}`, name);
+}
+
+// ── Payment history (subcollection) ──────────────────────────────────────────
+
+export async function addVendorPayment(vendorId, data) {
+  const ref = await addDoc(
+    collection(db, VENDORS_COL, vendorId, 'payments'),
+    {
+      ...data,
+      amount   : Number(data.amount) || 0,
+      createdAt: serverTimestamp(),
+    },
+  );
+  await logActivity('Payment recorded', `₹${data.amount} to ${data.vendorName || ''}`);
+  return ref.id;
+}
+
+export function subscribeToVendorPayments(vendorId, callback) {
+  return onSnapshot(
+    query(
+      collection(db, VENDORS_COL, vendorId, 'payments'),
+      orderBy('createdAt', 'desc'),
+    ),
+    (snap) => callback({
+      payments: snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+      error: null,
+    }),
+    (error) => callback({ payments: [], error }),
+  );
+}
+
+// ── Work history (maintenanceRequests) ────────────────────────────────────────
+
+export function subscribeToVendorWorkHistory(vendorId, callback) {
+  return onSnapshot(
+    query(
+      collection(db, 'maintenanceRequests'),
+      where('assignedVendorId', '==', vendorId),
+      orderBy('createdAt', 'desc'),
+    ),
+    (snap) => callback({
+      jobs : snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+      error: null,
+    }),
+    (error) => callback({ jobs: [], error }),
+  );
 }
 
 // ── Real-time subscriptions ───────────────────────────────────────────────────

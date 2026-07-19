@@ -42,11 +42,12 @@ export function useVendors({ statusFilter = 'all', categoryFilter = 'all', searc
   const paged      = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const stats = useMemo(() => {
-    const total       = allVendors.length;
-    const active      = allVendors.filter((v) => v.status === 'Active').length;
-    const inactive    = allVendors.filter((v) => v.status === 'Inactive').length;
-    const blacklisted = allVendors.filter((v) => v.status === 'Blacklisted').length;
-    const byCategory  = allVendors.reduce((acc, v) => {
+    const total     = allVendors.length;
+    const pending   = allVendors.filter((v) => v.status === 'Pending').length;
+    const approved  = allVendors.filter((v) => v.status === 'Approved').length;
+    const rejected  = allVendors.filter((v) => v.status === 'Rejected').length;
+    const suspended = allVendors.filter((v) => v.status === 'Suspended').length;
+    const byCategory = allVendors.reduce((acc, v) => {
       const cat = v.category || 'Other';
       acc[cat] = (acc[cat] || 0) + 1;
       return acc;
@@ -54,7 +55,7 @@ export function useVendors({ statusFilter = 'all', categoryFilter = 'all', searc
     const avgRating = allVendors.length
       ? (allVendors.reduce((s, v) => s + (Number(v.rating) || 0), 0) / allVendors.length).toFixed(1)
       : '0.0';
-    return { total, active, inactive, blacklisted, byCategory, avgRating };
+    return { total, pending, approved, rejected, suspended, byCategory, avgRating };
   }, [allVendors]);
 
   return {
