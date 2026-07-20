@@ -1,9 +1,11 @@
-import { useState, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Menu, Search, Bell, ChevronDown, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useUnreadNotificationCount } from '../../hooks/useNotifications.js';
-import NotificationDropdown from '../notifications/NotificationDropdown.jsx';
+import NotificationDropdown    from '../notifications/NotificationDropdown.jsx';
+import GlobalSearchDropdown    from '../search/GlobalSearchDropdown.jsx';
+import { useGlobalSearch }     from '../../hooks/useGlobalSearch.js';
 
 const routeLabels = {
   '/admin': 'Dashboard',
@@ -39,14 +41,32 @@ function getInitials(email) {
 
 export default function Header({ onMenuClick }) {
   const { currentUser } = useAuth();
-  const location = useLocation();
-  const [profileOpen, setProfileOpen]   = useState(false);
-  const [notifOpen,   setNotifOpen]     = useState(false);
+  const location        = useLocation();
+  const navigate        = useNavigate();
+
+  const [profileOpen,  setProfileOpen]  = useState(false);
+  const [notifOpen,    setNotifOpen]    = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState('');
+  const [searchOpen,   setSearchOpen]   = useState(false);
+  const searchRef = useRef(null);
 
   const unreadCount  = useUnreadNotificationCount();
   const pageTitle    = routeLabels[location.pathname] ?? 'Admin';
   const initials     = getInitials(currentUser?.email);
   const displayEmail = currentUser?.email ?? 'admin@proppact.com';
+
+  const { groups, loading: searchLoading } = useGlobalSearch(searchOpen ? searchQuery : '');
+
+  // Debounce: keep searchOpen when query >= 2 chars
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) setSearchOpen(true);
+  }, [searchQuery]);
+
+  function handleSearchNavigate(href) {
+    setSearchQuery('');
+    setSearchOpen(false);
+    navigate(href);
+  }
 
   const closeNotif = useCallback(() => setNotifOpen(false), []);
 
@@ -70,14 +90,37 @@ export default function Header({ onMenuClick }) {
 
       {/* Right controls */}
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="hidden md:flex items-center gap-2 h-9 w-52 lg:w-64 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-400 focus-within:border-orange-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-100 transition-all">
-          <Search className="h-3.5 w-3.5 flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Search…"
-            className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none min-w-0"
-          />
+        {/* Global Search */}
+        <div ref={searchRef} className="relative hidden md:block w-52 lg:w-72">
+          <div className="flex items-center gap-2 h-9 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-400 focus-within:border-orange-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-100 transition-all">
+            <Search className="h-3.5 w-3.5 flex-shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => { if (searchQuery.trim().length >= 2) setSearchOpen(true); }}
+              placeholder="Search properties, tenants…"
+              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none min-w-0"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(''); setSearchOpen(false); }}
+                className="text-gray-400 hover:text-gray-600 transition-colors text-xs leading-none"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {searchOpen && (
+            <GlobalSearchDropdown
+              groups={groups}
+              loading={searchLoading}
+              query={searchQuery}
+              onClose={() => { setSearchOpen(false); setSearchQuery(''); }}
+              onNavigate={handleSearchNavigate}
+            />
+          )}
         </div>
 
         {/* Date */}
