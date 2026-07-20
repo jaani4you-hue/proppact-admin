@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Loader2, Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
 import {
@@ -7,6 +7,10 @@ import {
   getComplaintById,
   generateComplaintNumber,
 } from '../../services/complaintService.js';
+import { useProperties } from '../../hooks/useProperties.js';
+import { useTenants }    from '../../hooks/useTenants.js';
+import { useOwners }     from '../../hooks/useOwners.js';
+import EntitySearchSelect from '../../components/ui/EntitySearchSelect.jsx';
 
 const CATEGORIES = [
   'Water/Plumbing', 'Electrical', 'Structural/Civil', 'Noise/Disturbance',
@@ -152,6 +156,49 @@ export default function ComplaintForm() {
     setForm((f) => ({ ...f, attachments: f.attachments.filter((_, i) => i !== idx) }));
   }
 
+  // ── Smart Auto-Fill data ──────────────────────────────────────────────────────
+  const { properties, loading: propsLoading } = useProperties({ pageSize: 1000 });
+  const { tenants,    loading: tenantsLoading } = useTenants({ pageSize: 1000 });
+  const { owners,     loading: ownersLoading }  = useOwners({ pageSize: 1000 });
+
+  const propertyOptions = useMemo(() => (properties || []).map((p) => ({
+    id     : p.id,
+    label  : p.title || p.name || p.id,
+    sub    : [p.address, p.city].filter(Boolean).join(', '),
+    address: p.address || '',
+  })), [properties]);
+
+  const complainantOptions = useMemo(() => {
+    if (form.complainantType === 'Owner') {
+      return (owners || []).map((o) => ({
+        id: o.id, label: o.fullName || '', sub: o.mobile || o.email || '',
+        phone: o.mobile || o.phone || '',
+      }));
+    }
+    return (tenants || []).map((t) => ({
+      id: t.id, label: t.fullName || '', sub: t.mobile || t.email || '',
+      phone: t.mobile || '',
+    }));
+  }, [form.complainantType, tenants, owners]);
+
+  function onPropertySelect(item) {
+    setForm((f) => ({
+      ...f,
+      propertyId     : item.id,
+      propertyName   : item.label,
+      propertyAddress: item.address,
+    }));
+  }
+
+  function onComplainantSelect(item) {
+    setForm((f) => ({
+      ...f,
+      complainantId   : item.id,
+      complainantName : item.label,
+      complainantPhone: item.phone || '',
+    }));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.title.trim())            return setError('Complaint title is required.');
@@ -229,37 +276,48 @@ export default function ComplaintForm() {
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
           <SectionTitle n={2} title="Complainant" desc="Person raising the complaint" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Name" required>
-              <Input value={form.complainantName} onChange={(e) => set('complainantName', e.target.value)} placeholder="Full name" />
-            </Field>
             <Field label="Type">
               <Select value={form.complainantType} onChange={(e) => set('complainantType', e.target.value)}>
                 {COMPLAINANT_TYPES.map((t) => <option key={t}>{t}</option>)}
               </Select>
             </Field>
+            <Field label="Search Complainant" required hint={`Search ${form.complainantType.toLowerCase()} by name or phone`}>
+              <EntitySearchSelect
+                options={complainantOptions}
+                value={form.complainantName}
+                onSelect={onComplainantSelect}
+                onChange={(v) => set('complainantName', v)}
+                placeholder={`Search ${form.complainantType.toLowerCase()}s…`}
+                loading={form.complainantType === 'Owner' ? ownersLoading : tenantsLoading}
+              />
+            </Field>
             <Field label="Phone">
               <Input type="tel" value={form.complainantPhone} onChange={(e) => set('complainantPhone', e.target.value)} placeholder="+91 XXXXX XXXXX" />
             </Field>
-            <Field label="Complainant ID (Firestore)" hint="Optional">
-              <Input value={form.complainantId} onChange={(e) => set('complainantId', e.target.value)} placeholder="Firestore document ID" />
-            </Field>
+            {form.complainantId && (
+              <p className="text-[11px] text-gray-400 self-end pb-2">ID: <span className="font-mono">{form.complainantId}</span></p>
+            )}
           </div>
         </div>
 
         {/* 3. Property */}
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
-          <SectionTitle n={3} title="Property Details" />
+          <SectionTitle n={3} title="Property Details" desc="Search a property to auto-fill address" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Property Name">
-              <Input value={form.propertyName} onChange={(e) => set('propertyName', e.target.value)} placeholder="e.g. Sunrise Apts" />
+            <Field label="Search Property" hint="Type name, address, or city">
+              <EntitySearchSelect
+                options={propertyOptions}
+                value={form.propertyName}
+                onSelect={onPropertySelect}
+                onChange={(v) => set('propertyName', v)}
+                placeholder="Search properties…"
+                loading={propsLoading}
+              />
             </Field>
             <Field label="Unit / Flat Number">
               <Input value={form.unitNumber} onChange={(e) => set('unitNumber', e.target.value)} placeholder="e.g. 4B" />
             </Field>
-            <Field label="Property ID (Firestore)" hint="Optional">
-              <Input value={form.propertyId} onChange={(e) => set('propertyId', e.target.value)} placeholder="Firestore document ID" />
-            </Field>
-            <Field label="Property Address">
+            <Field label="Property Address" hint="Auto-filled or enter manually">
               <Input value={form.propertyAddress} onChange={(e) => set('propertyAddress', e.target.value)} placeholder="Full address" />
             </Field>
           </div>

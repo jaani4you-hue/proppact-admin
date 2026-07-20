@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, Loader2, Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
 import {
@@ -8,6 +8,9 @@ import {
   generateMaintenanceNumber,
 } from '../../services/maintenanceService.js';
 import { fetchAllVendors } from '../../services/vendorService.js';
+import { useProperties }    from '../../hooks/useProperties.js';
+import { useComplaints }    from '../../hooks/useComplaints.js';
+import EntitySearchSelect   from '../../components/ui/EntitySearchSelect.jsx';
 
 const CATEGORIES = [
   'Plumbing', 'Electrical', 'Civil/Structural', 'Painting', 'Carpentry',
@@ -152,6 +155,51 @@ export default function MaintenanceForm() {
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState(null);
 
+  // ── Smart Auto-Fill data ──────────────────────────────────────────────────────
+  const { properties,  loading: propsLoading }         = useProperties({ pageSize: 1000 });
+  const { allComplaints: complaints, loading: cmpsLoading } = useComplaints();
+
+  const propertyOptions = useMemo(() => (properties || []).map((p) => ({
+    id     : p.id,
+    label  : p.title || p.name || p.id,
+    sub    : [p.address, p.city].filter(Boolean).join(', '),
+    address: p.address || '',
+  })), [properties]);
+
+  const complaintOptions = useMemo(() => (complaints || []).map((c) => ({
+    id             : c.id,
+    label          : c.title || c.complaintNumber || c.id,
+    sub            : [c.propertyName, c.status].filter(Boolean).join(' — '),
+    complaintNumber: c.complaintNumber || '',
+    propertyName   : c.propertyName    || '',
+    propertyId     : c.propertyId      || '',
+    propertyAddress: c.propertyAddress || '',
+    unitNumber     : c.unitNumber      || '',
+    category       : c.category        || '',
+  })), [complaints]);
+
+  function onPropertySelect(item) {
+    setForm((f) => ({
+      ...f,
+      propertyId     : item.id,
+      propertyName   : item.label,
+      propertyAddress: item.address,
+    }));
+  }
+
+  function onComplaintSelect(item) {
+    setForm((f) => ({
+      ...f,
+      complaintId    : item.id,
+      complaintNumber: item.complaintNumber,
+      propertyId     : item.propertyId      || f.propertyId,
+      propertyName   : item.propertyName    || f.propertyName,
+      propertyAddress: item.propertyAddress || f.propertyAddress,
+      unitNumber     : item.unitNumber      || f.unitNumber,
+      category       : item.category        || f.category,
+    }));
+  }
+
   useEffect(() => {
     fetchAllVendors().then((vs) => setVendors(vs.filter((v) => v.status === 'Active')));
   }, []);
@@ -261,19 +309,33 @@ export default function MaintenanceForm() {
 
         {/* 2. Property */}
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
-          <SectionTitle n={2} title="Property Details" />
+          <SectionTitle n={2} title="Property Details" desc="Search a property to auto-fill address, or link from a complaint" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Property Name">
-              <Input value={form.propertyName} onChange={(e) => set('propertyName', e.target.value)} placeholder="e.g. Sunrise Apts" />
+            <Field label="Search Property" hint="Type name or address">
+              <EntitySearchSelect
+                options={propertyOptions}
+                value={form.propertyName}
+                onSelect={onPropertySelect}
+                onChange={(v) => set('propertyName', v)}
+                placeholder="Search properties…"
+                loading={propsLoading}
+              />
             </Field>
             <Field label="Unit / Flat Number">
               <Input value={form.unitNumber} onChange={(e) => set('unitNumber', e.target.value)} placeholder="e.g. 4B" />
             </Field>
-            <Field label="Property ID (Firestore)" hint="Optional">
-              <Input value={form.propertyId} onChange={(e) => set('propertyId', e.target.value)} placeholder="Firestore document ID" />
+            <Field label="Search Linked Complaint" hint="Auto-fills property and category">
+              <EntitySearchSelect
+                options={complaintOptions}
+                value={form.complaintNumber ? `${form.complaintNumber}` : form.complaintId}
+                onSelect={onComplaintSelect}
+                onChange={(v) => set('complaintNumber', v)}
+                placeholder="Link a complaint…"
+                loading={cmpsLoading}
+              />
             </Field>
             <Field label="Property Address">
-              <Input value={form.propertyAddress} onChange={(e) => set('propertyAddress', e.target.value)} placeholder="Full address" />
+              <Input value={form.propertyAddress} onChange={(e) => set('propertyAddress', e.target.value)} placeholder="Auto-filled or enter manually" />
             </Field>
           </div>
         </div>

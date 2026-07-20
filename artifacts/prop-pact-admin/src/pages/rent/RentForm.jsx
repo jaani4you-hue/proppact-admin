@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { createRent, updateRent, getRentById } from '../../services/rentService.js';
+import { useProperties } from '../../hooks/useProperties.js';
+import { useTenants }    from '../../hooks/useTenants.js';
+import EntitySearchSelect from '../../components/ui/EntitySearchSelect.jsx';
 
 const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'UPI', 'Cheque', 'NEFT', 'RTGS'];
 const PROPERTY_TYPES  = ['Apartment', 'Villa', 'Plot', 'Commercial', 'Penthouse', 'Studio', 'Row House'];
@@ -81,6 +84,46 @@ export default function RentForm() {
   const [loading, setLoading] = useState(isEdit);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState(null);
+
+  // ── Smart Auto-Fill data ──────────────────────────────────────────────────────
+  const { properties, loading: propsLoading } = useProperties({ pageSize: 1000 });
+  const { tenants,    loading: tenantsLoading } = useTenants({ pageSize: 1000 });
+
+  const propertyOptions = useMemo(() => (properties || []).map((p) => ({
+    id             : p.id,
+    label          : p.title || p.name || p.id,
+    sub            : [p.address, p.city].filter(Boolean).join(', '),
+    ownerName      : p.ownerName      || '',
+    ownerId        : p.ownerId        || '',
+    address        : p.address        || '',
+    type           : p.type           || '',
+    monthlyRent    : p.monthlyRent    || p.baseRent || '',
+    securityDeposit: p.securityDeposit || '',
+  })), [properties]);
+
+  const tenantOptions = useMemo(() => (tenants || []).map((t) => ({
+    id   : t.id,
+    label: t.fullName || '',
+    sub  : t.mobile || t.email || '',
+  })), [tenants]);
+
+  function onPropertySelect(item) {
+    setForm((f) => ({
+      ...f,
+      propertyId     : item.id,
+      propertyName   : item.label,
+      propertyAddress: item.address,
+      propertyType   : item.type,
+      ownerName      : item.ownerName,
+      ownerId        : item.ownerId,
+      monthlyRent    : item.monthlyRent    ? String(item.monthlyRent)    : f.monthlyRent,
+      securityDeposit: item.securityDeposit ? String(item.securityDeposit) : f.securityDeposit,
+    }));
+  }
+
+  function onTenantSelect(item) {
+    setForm((f) => ({ ...f, tenantId: item.id, tenantName: item.label }));
+  }
 
   useEffect(() => {
     if (!isEdit) return;
@@ -171,65 +214,45 @@ export default function RentForm() {
 
         {/* ── 1. Tenant Information ── */}
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
-          <SectionTitle n={1} title="Tenant Information" desc="Who is renting this property?" />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tenant Name" required>
-              <Input
-                placeholder="Full name"
-                value={form.tenantName}
-                onChange={(e) => set('tenantName', e.target.value)}
-              />
-            </Field>
-            <Field label="Tenant ID (Firestore)" hint="Optional — paste the tenant's document ID">
-              <Input
-                placeholder="e.g. abc123xyz"
-                value={form.tenantId}
-                onChange={(e) => set('tenantId', e.target.value)}
-              />
-            </Field>
-          </div>
+          <SectionTitle n={1} title="Tenant Information" desc="Search and select a tenant to auto-fill details" />
+          <Field label="Search Tenant" required hint="Type to search by name or phone">
+            <EntitySearchSelect
+              options={tenantOptions}
+              value={form.tenantName}
+              onSelect={onTenantSelect}
+              onChange={(v) => set('tenantName', v)}
+              placeholder="Search tenants…"
+              loading={tenantsLoading}
+            />
+          </Field>
+          {form.tenantId && (
+            <p className="text-[11px] text-gray-400">Tenant ID: <span className="font-mono">{form.tenantId}</span></p>
+          )}
         </div>
 
-        {/* ── 2. Owner Information ── */}
+        {/* ── 2. Property Information ── */}
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
-          <SectionTitle n={2} title="Owner Information" desc="Who owns this property?" />
+          <SectionTitle n={2} title="Property Information" desc="Select a property to auto-fill owner, address, and rent defaults" />
+          <Field label="Search Property" required hint="Type to search by name, address, or city">
+            <EntitySearchSelect
+              options={propertyOptions}
+              value={form.propertyName}
+              onSelect={onPropertySelect}
+              onChange={(v) => set('propertyName', v)}
+              placeholder="Search properties…"
+              loading={propsLoading}
+            />
+          </Field>
+          {(form.propertyAddress || form.propertyType || form.ownerId) && (
+            <div className="rounded-lg bg-orange-50 border border-orange-100 px-3 py-2.5 grid gap-1.5 sm:grid-cols-2 text-xs">
+              {form.propertyAddress && <p className="text-gray-600"><span className="font-medium text-gray-700">Address:</span> {form.propertyAddress}</p>}
+              {form.propertyType    && <p className="text-gray-600"><span className="font-medium text-gray-700">Type:</span> {form.propertyType}</p>}
+              {form.ownerName       && <p className="text-gray-600"><span className="font-medium text-gray-700">Owner:</span> {form.ownerName}</p>}
+              {form.propertyId      && <p className="text-gray-500 font-mono text-[10px] sm:col-span-2">ID: {form.propertyId}</p>}
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Owner Name">
-              <Input
-                placeholder="Full name"
-                value={form.ownerName}
-                onChange={(e) => set('ownerName', e.target.value)}
-              />
-            </Field>
-            <Field label="Owner ID (Firestore)" hint="Optional — paste the owner's document ID">
-              <Input
-                placeholder="e.g. owner123"
-                value={form.ownerId}
-                onChange={(e) => set('ownerId', e.target.value)}
-              />
-            </Field>
-          </div>
-        </div>
-
-        {/* ── 3. Property Information ── */}
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
-          <SectionTitle n={3} title="Property Information" />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Property Name" required>
-              <Input
-                placeholder="e.g. Sunrise Apartment 3B"
-                value={form.propertyName}
-                onChange={(e) => set('propertyName', e.target.value)}
-              />
-            </Field>
-            <Field label="Property ID (Firestore)" hint="Optional">
-              <Input
-                placeholder="e.g. prop456"
-                value={form.propertyId}
-                onChange={(e) => set('propertyId', e.target.value)}
-              />
-            </Field>
-            <Field label="Property Address">
+            <Field label="Property Address" hint="Auto-filled or enter manually">
               <Input
                 placeholder="Full address"
                 value={form.propertyAddress}
@@ -241,6 +264,27 @@ export default function RentForm() {
                 <option value="">Select type</option>
                 {PROPERTY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </Select>
+            </Field>
+          </div>
+        </div>
+
+        {/* ── 3. Owner Information (auto-filled from property) ── */}
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
+          <SectionTitle n={3} title="Owner Information" desc="Auto-filled when a property is selected above" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Owner Name">
+              <Input
+                placeholder="Auto-filled from property"
+                value={form.ownerName}
+                onChange={(e) => set('ownerName', e.target.value)}
+              />
+            </Field>
+            <Field label="Owner ID" hint="Auto-filled from property">
+              <Input
+                placeholder="Auto-filled"
+                value={form.ownerId}
+                onChange={(e) => set('ownerId', e.target.value)}
+              />
             </Field>
           </div>
         </div>

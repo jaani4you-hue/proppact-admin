@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Save, Loader2, Upload, X, FileText, Image as ImageIcon,
@@ -9,6 +9,11 @@ import {
   getLegalCaseById,
   generateCaseNumber,
 } from '../../services/legalService.js';
+import { useProperties } from '../../hooks/useProperties.js';
+import { useTenants }    from '../../hooks/useTenants.js';
+import { useOwners }     from '../../hooks/useOwners.js';
+import { useDealers }    from '../../hooks/useDealers.js';
+import EntitySearchSelect from '../../components/ui/EntitySearchSelect.jsx';
 
 const CASE_TYPES   = ['Legal Notice', 'Rent Agreement', 'Eviction', 'Court Case', 'Other'];
 const STATUSES     = ['Pending', 'Active', 'Won', 'Lost', 'Closed', 'Withdrawn', 'On Hold'];
@@ -230,6 +235,43 @@ export default function LegalForm() {
 
   function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
 
+  // ── Smart Auto-Fill data ──────────────────────────────────────────────────────
+  const { properties, loading: propsLoading } = useProperties({ pageSize: 1000 });
+  const { tenants,    loading: tenantsLoading } = useTenants({ pageSize: 1000 });
+  const { owners,     loading: ownersLoading }  = useOwners({ pageSize: 1000 });
+  const { dealers,    loading: dealersLoading } = useDealers({ pageSize: 1000 });
+
+  const propertyOptions = useMemo(() => (properties || []).map((p) => ({
+    id     : p.id,
+    label  : p.title || p.name || p.id,
+    sub    : [p.address, p.city].filter(Boolean).join(', '),
+    address: p.address || '',
+  })), [properties]);
+
+  const clientOptions = useMemo(() => {
+    if (form.clientType === 'Owner')  return (owners  || []).map((o) => ({ id: o.id, label: o.fullName || '', sub: o.mobile || '', phone: o.mobile || '' }));
+    if (form.clientType === 'Dealer') return (dealers || []).map((d) => ({ id: d.id, label: d.name || d.fullName || '', sub: d.mobile || '', phone: d.mobile || '' }));
+    return (tenants || []).map((t) => ({ id: t.id, label: t.fullName || '', sub: t.mobile || '', phone: t.mobile || '' }));
+  }, [form.clientType, tenants, owners, dealers]);
+
+  function onPropertySelect(item) {
+    setForm((f) => ({
+      ...f,
+      propertyId     : item.id,
+      propertyName   : item.label,
+      propertyAddress: item.address,
+    }));
+  }
+
+  function onClientSelect(item) {
+    setForm((f) => ({
+      ...f,
+      clientId   : item.id,
+      clientName : item.label,
+      clientPhone: item.phone || '',
+    }));
+  }
+
   function removeDoc(idx) {
     setForm((f) => ({ ...f, documents: f.documents.filter((_, i) => i !== idx) }));
   }
@@ -364,34 +406,45 @@ export default function LegalForm() {
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
           <SectionTitle n={3} title="Client Assignment" desc="Party represented in this case" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Client Name">
-              <Input value={form.clientName} onChange={(e) => set('clientName', e.target.value)} placeholder="Full name" />
-            </Field>
             <Field label="Client Type">
               <Select value={form.clientType} onChange={(e) => set('clientType', e.target.value)}>
                 {CLIENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </Select>
             </Field>
-            <Field label="Client ID (Firestore)" hint="Optional">
-              <Input value={form.clientId} onChange={(e) => set('clientId', e.target.value)} placeholder="Firestore document ID" />
+            <Field label="Search Client" hint={`Search by name or phone`}>
+              <EntitySearchSelect
+                options={clientOptions}
+                value={form.clientName}
+                onSelect={onClientSelect}
+                onChange={(v) => set('clientName', v)}
+                placeholder={`Search ${form.clientType.toLowerCase()}s…`}
+                loading={tenantsLoading || ownersLoading || dealersLoading}
+              />
             </Field>
             <Field label="Client Phone">
               <Input type="tel" value={form.clientPhone} onChange={(e) => set('clientPhone', e.target.value)} placeholder="+91 XXXXX XXXXX" />
             </Field>
+            {form.clientId && (
+              <p className="text-[11px] text-gray-400 self-end pb-2">ID: <span className="font-mono">{form.clientId}</span></p>
+            )}
           </div>
         </div>
 
         {/* ── 4. Property ── */}
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
-          <SectionTitle n={4} title="Property Assignment" />
+          <SectionTitle n={4} title="Property Assignment" desc="Search a property to auto-fill address" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Property Name">
-              <Input value={form.propertyName} onChange={(e) => set('propertyName', e.target.value)} placeholder="e.g. Sunrise Apts, Flat 4B" />
+            <Field label="Search Property" hint="Type name, address, or city">
+              <EntitySearchSelect
+                options={propertyOptions}
+                value={form.propertyName}
+                onSelect={onPropertySelect}
+                onChange={(v) => set('propertyName', v)}
+                placeholder="Search properties…"
+                loading={propsLoading}
+              />
             </Field>
-            <Field label="Property ID (Firestore)" hint="Optional">
-              <Input value={form.propertyId} onChange={(e) => set('propertyId', e.target.value)} placeholder="Firestore document ID" />
-            </Field>
-            <Field label="Property Address" className="sm:col-span-2">
+            <Field label="Property Address" hint="Auto-filled or enter manually">
               <Input value={form.propertyAddress} onChange={(e) => set('propertyAddress', e.target.value)} placeholder="Full address" />
             </Field>
           </div>

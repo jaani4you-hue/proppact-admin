@@ -77,7 +77,7 @@ export default function TenantForm() {
   const navigate = useNavigate();
   const isEdit   = Boolean(id);
 
-  const { properties, loading: propsLoading } = useProperties();
+  const { properties, loading: propsLoading } = useProperties({ pageSize: 1000 });
 
   const [form,         setForm]         = useState(EMPTY_FORM);
   const [photoFile,    setPhotoFile]    = useState(null);
@@ -153,15 +153,17 @@ export default function TenantForm() {
     if (errors[name]) setErrors((p) => ({ ...p, [name]: '' }));
   }
 
-  // When property changes, auto-fill owner from the property doc
+  // When property changes, auto-fill owner, rent, deposit from the property doc
   function handlePropertyChange(e) {
-    const pid = e.target.value;
+    const pid  = e.target.value;
     const prop = properties.find((p) => p.id === pid);
     setForm((prev) => ({
       ...prev,
       propertyId:       pid,
       assignedProperty: prop ? (prop.title ?? prop.name ?? prop.propertyName ?? '') : '',
       owner:            prop ? (prop.ownerName ?? prop.owner ?? '') : prev.owner,
+      monthlyRent:      prop?.monthlyRent     ? String(prop.monthlyRent)     : prev.monthlyRent,
+      securityDeposit:  prop?.securityDeposit ? String(prop.securityDeposit) : prev.securityDeposit,
     }));
   }
 
