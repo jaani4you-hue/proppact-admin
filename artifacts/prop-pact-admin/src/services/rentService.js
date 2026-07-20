@@ -13,6 +13,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase.js';
+import { notifyOnce } from './notificationService.js';
 
 const RENTS_COL    = 'rents';
 const PAYMENTS_COL = 'rentPayments';
@@ -72,6 +73,16 @@ export async function createRent(data) {
   };
   const ref = await addDoc(collection(db, RENTS_COL), payload);
   await logActivity('Rent created', data.tenantName);
+  if (status === 'Overdue') {
+    await notifyOnce({
+      type         : 'rent_reminder',
+      title        : `Rent Overdue — ${data.propertyName || 'Property'}`,
+      body         : `${data.tenantName || 'Tenant'} has an overdue rent of ₹${(Number(data.monthlyRent) || 0).toLocaleString('en-IN')}.`,
+      relatedId    : ref.id,
+      relatedModule: 'Rent',
+      relatedPath  : `/admin/rent/${ref.id}`,
+    });
+  }
   return ref.id;
 }
 
@@ -86,6 +97,16 @@ export async function updateRent(id, data) {
   };
   await updateDoc(doc(db, RENTS_COL, id), payload);
   await logActivity('Rent updated', data.tenantName);
+  if (status === 'Overdue') {
+    await notifyOnce({
+      type         : 'rent_reminder',
+      title        : `Rent Overdue — ${data.propertyName || 'Property'}`,
+      body         : `${data.tenantName || 'Tenant'} has an overdue balance of ₹${((Number(data.monthlyRent) || 0) - (Number(data.paidAmount) || 0)).toLocaleString('en-IN')}.`,
+      relatedId    : id,
+      relatedModule: 'Rent',
+      relatedPath  : `/admin/rent/${id}`,
+    });
+  }
 }
 
 export async function deleteRent(id) {

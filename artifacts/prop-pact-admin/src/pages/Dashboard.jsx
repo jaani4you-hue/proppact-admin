@@ -12,8 +12,10 @@ import {
   DatabaseZap,
   Loader2,
 } from 'lucide-react';
-import { useDashboardStats } from '../hooks/useDashboardStats.js';
-import { useActivityLog }    from '../hooks/useActivityLog.js';
+import { useEffect }           from 'react';
+import { useDashboardStats }  from '../hooks/useDashboardStats.js';
+import { useActivityLog }     from '../hooks/useActivityLog.js';
+import { checkAndNotifyOverdueRents } from '../services/notificationService.js';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -250,6 +252,11 @@ function ActivityEmptyState({ loading }) {
 export default function Dashboard() {
   const statsData  = useDashboardStats();
   const activities = useActivityLog(); // null = loading | Row[]
+
+  // On mount: silently check for overdue rents and fire notifications if needed
+  useEffect(() => {
+    checkAndNotifyOverdueRents();
+  }, []);
 
   // Map stat-card IDs → formatted display values (null = still loading → "--")
   const cardValues = {

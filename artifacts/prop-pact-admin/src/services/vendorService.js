@@ -13,6 +13,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase.js';
+import { notifyOnce } from './notificationService.js';
 
 const VENDORS_COL = 'vendors';
 
@@ -57,6 +58,15 @@ export async function createVendor(data) {
   };
   const ref = await addDoc(collection(db, VENDORS_COL), payload);
   await logActivity('Vendor registered', data.name);
+  await notifyOnce({
+    type         : 'vendor_status',
+    title        : `New Vendor Registration — ${data.name || ''}`,
+    body         : `${data.name || 'A vendor'} has registered and is awaiting admin approval.`,
+    relatedId    : ref.id,
+    relatedModule: 'Vendors',
+    relatedPath  : `/admin/vendors/${ref.id}`,
+    cooldownHours: 0,
+  });
   return ref.id;
 }
 
@@ -104,6 +114,23 @@ export async function updateVendorStatus(id, status, reason = '') {
     Pending  : 'Vendor reset to pending',
   };
   await logActivity(actionMap[status] || `Status → ${status}`, name);
+  const vendorNotifMap = {
+    Approved : { title: `Vendor Approved — ${name}`, body: `${name} is now approved and can be assigned to work orders.` },
+    Rejected : { title: `Vendor Rejected — ${name}`, body: `${name} registration has been rejected.` },
+    Suspended: { title: `Vendor Suspended — ${name}`, body: `${name} has been suspended from work assignments.` },
+  };
+  const notifData = vendorNotifMap[status];
+  if (notifData) {
+    await notifyOnce({
+      type         : 'vendor_status',
+      title        : notifData.title,
+      body         : notifData.body,
+      relatedId    : `${id}_${status}`,
+      relatedModule: 'Vendors',
+      relatedPath  : `/admin/vendors/${id}`,
+      cooldownHours: 1,
+    });
+  }
 }
 
 // ── Payment history (subcollection) ──────────────────────────────────────────

@@ -19,6 +19,7 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { db, storage } from '../firebase/firebase.js';
+import { notifyOnce } from './notificationService.js';
 
 const CASES_COL    = 'legalCases';
 const HEARINGS_COL = 'legalHearings';
@@ -100,6 +101,15 @@ export async function createLegalCase(data, docFiles = [], evidenceFiles = []) {
 
   const ref2 = await addDoc(collection(db, CASES_COL), payload);
   await logActivity('Case created', data.title || data.caseNumber);
+  await notifyOnce({
+    type         : 'legal_reminder',
+    title        : `New Legal Case — ${data.title || payload.caseNumber}`,
+    body         : `Case type: ${data.caseType || 'General'} | Status: ${payload.status}.`,
+    relatedId    : ref2.id,
+    relatedModule: 'Legal',
+    relatedPath  : `/admin/legal/${ref2.id}`,
+    cooldownHours: 0,
+  });
   return ref2.id;
 }
 

@@ -20,6 +20,7 @@ import {
 } from 'firebase/storage';
 import { db, storage } from '../firebase/firebase.js';
 import { addComplaintHistory } from './complaintHistoryService.js';
+import { notifyOnce } from './notificationService.js';
 
 const CMP_COL = 'complaints';
 
@@ -103,6 +104,16 @@ export async function createComplaint(data, attachmentFiles = []) {
     toStatus  : initialStatus,
   });
 
+  await notifyOnce({
+    type         : 'complaint_update',
+    title        : `New Complaint Filed — ${data.title || payload.complaintNumber}`,
+    body         : `Category: ${data.category || 'General'} | Priority: ${data.priority || 'Normal'}.`,
+    relatedId    : ref2.id,
+    relatedModule: 'Complaints',
+    relatedPath  : `/admin/complaints/${ref2.id}`,
+    cooldownHours: 0, // always notify on new complaint
+  });
+
   return ref2.id;
 }
 
@@ -144,6 +155,24 @@ export async function updateComplaint(id, data, newAttachmentFiles = []) {
       toStatus  : data.status,
       note      : data.resolutionNotes || '',
     });
+
+    const statusNotifMap = {
+      'Resolved' : { title: `Complaint Resolved — ${data.title || ''}`, body: `Status changed from ${prevStatus} to Resolved.` },
+      'Rejected' : { title: `Complaint Rejected — ${data.title || ''}`, body: `Status changed from ${prevStatus} to Rejected.` },
+      'In Progress': { title: `Complaint In Progress — ${data.title || ''}`, body: `A vendor / work order has been assigned.` },
+    };
+    const notifData = statusNotifMap[data.status];
+    if (notifData) {
+      await notifyOnce({
+        type         : 'complaint_update',
+        title        : notifData.title,
+        body         : notifData.body,
+        relatedId    : `${id}_${data.status}`,
+        relatedModule: 'Complaints',
+        relatedPath  : `/admin/complaints/${id}`,
+        cooldownHours: 1,
+      });
+    }
   }
 }
 

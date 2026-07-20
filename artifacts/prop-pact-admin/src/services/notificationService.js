@@ -11,6 +11,7 @@ import {
   limit,
   serverTimestamp,
   getDocs,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase.js';
 
@@ -102,6 +103,61 @@ export function subscribeToUnreadCount(callback) {
     (snap) => callback(snap.size),
     () => callback(0),
   );
+}
+
+// ── Smart dedup: fire once per relatedId+type within a cooldown window ────────
+
+export async function notifyOnce({
+  type,
+  title,
+  body,
+  relatedId = '',
+  relatedModule = '',
+  relatedPath = '',
+  cooldownHours = 24,
+}) {
+  try {
+    if (relatedId) {
+      const since = Timestamp.fromDate(new Date(Date.now() - cooldownHours * 3_600_000));
+      const existing = await getDocs(
+        query(
+          collection(db, NOTIF_COL),
+          where('type',      '==', type),
+          where('relatedId', '==', relatedId),
+          where('createdAt', '>=', since),
+          limit(1),
+        ),
+      );
+      if (!existing.empty) return null; // already notified within cooldown
+    }
+    return createNotification({ type, title, body, relatedId, relatedModule, relatedPath });
+  } catch {
+    // Non-fatal — never block the calling action
+    return null;
+  }
+}
+
+// ── Rent due checker: call once on dashboard mount ────────────────────────────
+
+export async function checkAndNotifyOverdueRents() {
+  try {
+    const { getDocs: gd, query: q, collection: col, where: wh, orderBy: ob } = await import('firebase/firestore');
+    const snap = await gd(q(col(db, 'rents'), wh('status', 'in', ['Overdue', 'Pending']), ob('createdAt', 'desc')));
+    for (const d of snap.docs) {
+      const rent = d.data();
+      if (rent.status === 'Overdue') {
+        await notifyOnce({
+          type         : 'rent_reminder',
+          title        : `Rent Overdue — ${rent.propertyName || 'Property'}`,
+          body         : `${rent.tenantName || 'Tenant'} has an overdue balance of ₹${(Number(rent.outstandingBalance) || 0).toLocaleString('en-IN')}.`,
+          relatedId    : d.id,
+          relatedModule: 'Rent',
+          relatedPath  : `/admin/rent/${d.id}`,
+          cooldownHours: 24,
+        });
+      }
+    }
+  } catch { /* non-fatal */ }
 }
 
 // ── Seed helpers (call from admin to create test notifications) ───────────────

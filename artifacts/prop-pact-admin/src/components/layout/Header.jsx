@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Menu, Search, Bell, ChevronDown, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useUnreadNotificationCount } from '../../hooks/useNotifications.js';
+import NotificationDropdown from '../notifications/NotificationDropdown.jsx';
 
 const routeLabels = {
   '/admin': 'Dashboard',
@@ -39,12 +40,15 @@ function getInitials(email) {
 export default function Header({ onMenuClick }) {
   const { currentUser } = useAuth();
   const location = useLocation();
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileOpen, setProfileOpen]   = useState(false);
+  const [notifOpen,   setNotifOpen]     = useState(false);
 
-  const unreadCount = useUnreadNotificationCount();
-  const pageTitle = routeLabels[location.pathname] ?? 'Admin';
-  const initials = getInitials(currentUser?.email);
+  const unreadCount  = useUnreadNotificationCount();
+  const pageTitle    = routeLabels[location.pathname] ?? 'Admin';
+  const initials     = getInitials(currentUser?.email);
   const displayEmail = currentUser?.email ?? 'admin@proppact.com';
+
+  const closeNotif = useCallback(() => setNotifOpen(false), []);
 
   return (
     <header className="flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-4 lg:px-6 flex-shrink-0">
@@ -82,15 +86,26 @@ export default function Header({ onMenuClick }) {
           {getFormattedDate()}
         </div>
 
-        {/* Notification bell */}
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-500 transition-colors">
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-0.5 text-[9px] font-bold text-white">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </button>
+        {/* Notification bell + dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => { setNotifOpen((v) => !v); setProfileOpen(false); }}
+            className={[
+              'relative flex h-9 w-9 items-center justify-center rounded-lg border transition-colors',
+              notifOpen
+                ? 'bg-orange-50 border-orange-200 text-orange-500'
+                : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-500',
+            ].join(' ')}
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-0.5 text-[9px] font-bold text-white">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+          {notifOpen && <NotificationDropdown onClose={closeNotif} />}
+        </div>
 
         {/* Profile dropdown */}
         <div className="relative">

@@ -19,6 +19,7 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { db, storage } from '../firebase/firebase.js';
+import { notifyOnce } from './notificationService.js';
 import { resolveComplaintFromMaintenance } from './complaintService.js';
 import { addComplaintHistory } from './complaintHistoryService.js';
 
@@ -96,6 +97,15 @@ export async function createMaintenanceRequest(data, attachmentFiles = []) {
 
   const ref2 = await addDoc(collection(db, MNT_COL), payload);
   await logActivity('Request created', data.title);
+  await notifyOnce({
+    type         : 'maintenance_update',
+    title        : `New Maintenance Request — ${data.title || payload.maintenanceNumber}`,
+    body         : `Priority: ${data.priority || 'Normal'} | Category: ${data.category || 'General'}.`,
+    relatedId    : ref2.id,
+    relatedModule: 'Maintenance',
+    relatedPath  : `/admin/maintenance/${ref2.id}`,
+    cooldownHours: 0,
+  });
 
   // Log history on the linked complaint
   if (data.complaintId) {
@@ -135,6 +145,25 @@ export async function updateMaintenanceRequest(id, data, newAttachmentFiles = []
 
   await updateDoc(doc(db, MNT_COL, id), payload);
   await logActivity('Request updated', data.title);
+  if (data.status && data.status !== prevStatus) {
+    const mntNotifMap = {
+      'Completed' : { title: `Work Completed — ${data.title || ''}`, body: `Maintenance request has been marked as Completed.` },
+      'In Progress': { title: `Work In Progress — ${data.title || ''}`, body: `Maintenance work has started.` },
+      'Cancelled'  : { title: `Work Cancelled — ${data.title || ''}`, body: `Maintenance request was cancelled.` },
+    };
+    const notifData = mntNotifMap[data.status];
+    if (notifData) {
+      await notifyOnce({
+        type         : 'maintenance_update',
+        title        : notifData.title,
+        body         : notifData.body,
+        relatedId    : `${id}_${data.status}`,
+        relatedModule: 'Maintenance',
+        relatedPath  : `/admin/maintenance/${id}`,
+        cooldownHours: 1,
+      });
+    }
+  }
 
   // If newly assigned vendor, log on complaint
   if (data.complaintId && data.assignedVendorName && !prev.assignedVendorName) {
