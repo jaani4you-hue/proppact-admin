@@ -19,6 +19,7 @@ import {
   HardHat,
   Wrench,
   MessageSquareWarning,
+  ClipboardList,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase.js';
@@ -40,6 +41,7 @@ const STATIC_NAV = [
   { icon: Wrench,                label: 'Maintenance',            path: '/admin/maintenance' },
   { icon: HardHat,               label: 'Vendors',                path: '/admin/vendors' },
   { icon: Bell,                  label: 'Notifications',          path: '/admin/notifications', badgeKey: 'notifications' },
+  { icon: ClipboardList,         label: 'Activity Log',           path: '/admin/activity-log' },
   { icon: BarChart3,       label: 'Reports',                path: '/admin/reports' },
   { icon: Settings,        label: 'Settings',               path: '/admin/settings' },
 ];

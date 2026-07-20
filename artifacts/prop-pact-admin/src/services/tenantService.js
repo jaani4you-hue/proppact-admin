@@ -17,6 +17,7 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { db, storage } from '../firebase/firebase.js';
+import { logActivity }  from './activityLogService.js';
 
 const COLLECTION = 'tenants';
 
@@ -105,6 +106,7 @@ export async function createTenant(data, photoFile, specificDocFiles, otherDocFi
   };
 
   const ref2 = await addDoc(collection(db, COLLECTION), payload);
+  await logActivity({ action: 'Tenant created', label: data.fullName, module: 'Tenants', status: 'Approved' });
   return ref2.id;
 }
 
@@ -126,16 +128,19 @@ export async function updateTenant(id, data, photoFile, specificDocFiles, otherD
     updatedAt: serverTimestamp(),
   };
   await updateDoc(doc(db, COLLECTION, id), payload);
+  await logActivity({ action: 'Tenant updated', label: data.fullName, module: 'Tenants', status: 'Approved' });
 }
 
 export async function deleteTenant(id) {
   const snap = await getDoc(doc(db, COLLECTION, id));
+  const name = snap.exists() ? snap.data().fullName : id;
   if (snap.exists()) {
     const d = snap.data();
     if (d.photo) await safeDelete(d.photo);
     for (const item of d.documents ?? []) await safeDelete(item.url);
   }
   await deleteDoc(doc(db, COLLECTION, id));
+  await logActivity({ action: 'Tenant deleted', label: name, module: 'Tenants', status: 'Rejected' });
 }
 
 export async function getTenantById(id) {

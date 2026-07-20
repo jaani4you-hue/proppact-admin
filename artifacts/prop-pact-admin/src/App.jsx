@@ -54,6 +54,7 @@ const VendorDetails = lazy(() => import('./pages/vendors/VendorDetails.jsx'));
 // ── Notifications & Settings ──
 const NotificationList = lazy(() => import('./pages/notifications/NotificationList.jsx'));
 const SettingsPage     = lazy(() => import('./pages/settings/Settings.jsx'));
+const ActivityLogPage  = lazy(() => import('./pages/ActivityLogPage.jsx'));
 
 // ── Maintenance module ──
 const MaintenanceList    = lazy(() => import('./pages/maintenance/MaintenanceList.jsx'));
@@ -175,9 +176,10 @@ export default function App() {
             <Route path="complaints/:id"      element={<ComplaintDetails />} />
             <Route path="complaints/:id/edit" element={<ComplaintForm />} />
 
-            <Route path="notifications" element={<NotificationList />} />
-            <Route path="reports"       element={<RentReports />} />
-            <Route path="settings"      element={<SettingsPage />} />
+            <Route path="notifications"  element={<NotificationList />} />
+            <Route path="activity-log"   element={<ActivityLogPage />} />
+            <Route path="reports"        element={<RentReports />} />
+            <Route path="settings"       element={<SettingsPage />} />
           </Route>
 
           {/* Catch-all */}

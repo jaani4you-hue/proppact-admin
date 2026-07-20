@@ -17,6 +17,7 @@ const routeLabels = {
   '/admin/legal': 'Legal Requests',
   '/admin/rent': 'Rent',
   '/admin/notifications': 'Notifications',
+  '/admin/activity-log': 'Activity Log',
   '/admin/reports': 'Reports',
   '/admin/settings': 'Settings',
 };

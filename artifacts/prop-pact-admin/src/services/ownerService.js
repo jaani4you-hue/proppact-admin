@@ -18,6 +18,7 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { db, storage } from '../firebase/firebase.js';
+import { logActivity }  from './activityLogService.js';
 
 const COLLECTION = 'owners';
 
@@ -79,6 +80,7 @@ export async function createOwner(data, photoFile = null, docFiles = []) {
   };
 
   const docRef = await addDoc(collection(db, COLLECTION), payload);
+  await logActivity({ action: 'Owner created', label: data.fullName, module: 'Owners', status: 'Approved' });
   return docRef.id;
 }
 
@@ -117,11 +119,13 @@ export async function updateOwner(id, data, newPhotoFile = null, newDocFiles = [
   };
 
   await updateDoc(doc(db, COLLECTION, id), payload);
+  await logActivity({ action: 'Owner updated', label: data.fullName, module: 'Owners', status: 'Approved' });
 }
 
 /** Delete owner and clean up Storage files. */
 export async function deleteOwner(id) {
   const snap = await getDoc(doc(db, COLLECTION, id));
+  const name = snap.exists() ? snap.data().fullName : id;
   if (snap.exists()) {
     const d = snap.data();
     if (d.photo) await safeDeleteFile(d.photo);
@@ -130,6 +134,7 @@ export async function deleteOwner(id) {
     }
   }
   await deleteDoc(doc(db, COLLECTION, id));
+  await logActivity({ action: 'Owner deleted', label: name, module: 'Owners', status: 'Rejected' });
 }
 
 /** Fetch a single owner by ID (one-time). */

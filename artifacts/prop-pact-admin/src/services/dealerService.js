@@ -18,6 +18,7 @@ import {
   deleteObject,
 } from 'firebase/storage';
 import { db, storage } from '../firebase/firebase.js';
+import { logActivity }  from './activityLogService.js';
 
 const COLLECTION = 'dealers';
 
@@ -80,6 +81,7 @@ export async function createDealer(data, photoFile = null, docFiles = []) {
   };
 
   const docRef = await addDoc(collection(db, COLLECTION), payload);
+  await logActivity({ action: 'Dealer created', label: data.name || data.fullName, module: 'Dealers', status: 'Approved' });
   return docRef.id;
 }
 
@@ -123,11 +125,13 @@ export async function updateDealer(
   };
 
   await updateDoc(doc(db, COLLECTION, id), payload);
+  await logActivity({ action: 'Dealer updated', label: data.name || data.fullName, module: 'Dealers', status: 'Approved' });
 }
 
 /** Delete dealer and attempt to clean up Storage files. */
 export async function deleteDealer(id) {
   const snap = await getDoc(doc(db, COLLECTION, id));
+  const name = snap.exists() ? (snap.data().name || snap.data().fullName || id) : id;
   if (snap.exists()) {
     const d = snap.data();
     if (d.photo) await deleteStorageFile(d.photo);
@@ -136,6 +140,7 @@ export async function deleteDealer(id) {
     }
   }
   await deleteDoc(doc(db, COLLECTION, id));
+  await logActivity({ action: 'Dealer deleted', label: name, module: 'Dealers', status: 'Rejected' });
 }
 
 /** Fetch a single dealer by ID (one-time). */
