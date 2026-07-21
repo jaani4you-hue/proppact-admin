@@ -1,6 +1,6 @@
 /**
  * approvalService.js
- * 
+ *
  * Manages approval workflows for:
  * - Owners
  * - Tenants
@@ -8,6 +8,8 @@
  * - Dealers
  * - Properties
  * - Projects
+ *
+ * Phase 3: emits realtime notifications on create / approve / reject.
  */
 
 import {
@@ -23,6 +25,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase.js';
+import { notifyOnce } from './notificationService.js';
 
 const APPROVAL_COLLECTION = 'approvals';
 
@@ -43,11 +46,30 @@ export const APPROVAL_TYPES = {
   PROJECT: 'project',
 };
 
+// Pretty labels for notifications (e.g. `owner` → `Owner`)
+const TYPE_LABEL = {
+  owner   : 'Owner',
+  tenant  : 'Tenant',
+  vendor  : 'Vendor',
+  dealer  : 'Dealer',
+  property: 'Property',
+  project : 'Project',
+};
+
+function labelFor(type) {
+  return TYPE_LABEL[type] || (type ? String(type).replace(/^./, (c) => c.toUpperCase()) : 'Entity');
+}
+
+function entityName(entityData) {
+  if (!entityData || typeof entityData !== 'object') return '';
+  return entityData.name || entityData.title || entityData.fullName || entityData.propertyName || entityData.projectName || '';
+}
+
 // ── Create approval record ────────────────────────────────────────────────
 
 export async function createApproval(type, entityId, entityData, reason = '') {
   try {
-    await addDoc(collection(db, APPROVAL_COLLECTION), {
+    const ref2 = await addDoc(collection(db, APPROVAL_COLLECTION), {
       type,
       entityId,
       entityData,
@@ -59,20 +81,51 @@ export async function createApproval(type, entityId, entityData, reason = '') {
       reviewedAt: null,
       reviewNotes: '',
     });
+
+    const typeLabel = labelFor(type);
+    const name      = entityName(entityData);
+    await notifyOnce({
+      type         : 'approval_request',
+      title        : `New ${typeLabel} approval pending${name ? ` — ${name}` : ''}`,
+      body         : reason
+        ? `Awaiting admin review. ${reason}`
+        : `A new ${typeLabel.toLowerCase()} record is awaiting admin approval.`,
+      relatedId    : ref2.id,
+      relatedModule: 'Approvals',
+      relatedPath  : '/admin/approvals',
+      cooldownHours: 0,
+    });
+
+    return ref2.id;
   } catch (err) {
     console.error('[createApproval] Error:', err.message);
+    return null;
   }
 }
 
 // ── Approve or reject approval ────────────────────────────────────────────
 
-export async function approveApproval(approvalId, reviewerNotes = '') {
+export async function approveApproval(approvalId, reviewerNotes = '', context = {}) {
   try {
     await updateDoc(doc(db, APPROVAL_COLLECTION, approvalId), {
       status: APPROVAL_STATUS.APPROVED,
       reviewedBy: 'Admin',
       reviewedAt: serverTimestamp(),
-      reviewNotes,
+      reviewNotes: reviewerNotes,
+    });
+
+    const typeLabel = labelFor(context.type);
+    const name      = entityName(context.entityData);
+    await notifyOnce({
+      type         : 'approval_request',
+      title        : `${typeLabel} approved${name ? ` — ${name}` : ''}`,
+      body         : reviewerNotes
+        ? `Approval granted. Notes: ${reviewerNotes}`
+        : `The ${typeLabel.toLowerCase()} approval has been granted by admin.`,
+      relatedId    : `${approvalId}_approved`,
+      relatedModule: 'Approvals',
+      relatedPath  : '/admin/approvals',
+      cooldownHours: 1,
     });
   } catch (err) {
     console.error('[approveApproval] Error:', err.message);
@@ -80,13 +133,27 @@ export async function approveApproval(approvalId, reviewerNotes = '') {
   }
 }
 
-export async function rejectApproval(approvalId, reviewerNotes = '') {
+export async function rejectApproval(approvalId, reviewerNotes = '', context = {}) {
   try {
     await updateDoc(doc(db, APPROVAL_COLLECTION, approvalId), {
       status: APPROVAL_STATUS.REJECTED,
       reviewedBy: 'Admin',
       reviewedAt: serverTimestamp(),
-      reviewNotes,
+      reviewNotes: reviewerNotes,
+    });
+
+    const typeLabel = labelFor(context.type);
+    const name      = entityName(context.entityData);
+    await notifyOnce({
+      type         : 'approval_request',
+      title        : `${typeLabel} rejected${name ? ` — ${name}` : ''}`,
+      body         : reviewerNotes
+        ? `Approval rejected. Reason: ${reviewerNotes}`
+        : `The ${typeLabel.toLowerCase()} approval has been rejected by admin.`,
+      relatedId    : `${approvalId}_rejected`,
+      relatedModule: 'Approvals',
+      relatedPath  : '/admin/approvals',
+      cooldownHours: 1,
     });
   } catch (err) {
     console.error('[rejectApproval] Error:', err.message);
@@ -132,7 +199,25 @@ export function subscribeToPendingApprovals(callback, typeFilter = null) {
   }
 }
 
-// ── Get approval count by type ────────────────────────────────────────────
+// ── Realtime pending approval count (used by sidebar / bell) ──────────────
+
+export function subscribeToPendingApprovalCount(callback) {
+  try {
+    return onSnapshot(
+      query(
+        collection(db, APPROVAL_COLLECTION),
+        where('status', '==', APPROVAL_STATUS.PENDING)
+      ),
+      (snap) => callback(snap.size),
+      () => callback(0)
+    );
+  } catch {
+    callback(0);
+    return () => {};
+  }
+}
+
+// ── Get approval count by type (one-shot) ─────────────────────────────────
 
 export async function getPendingApprovalCount(type = null) {
   try {

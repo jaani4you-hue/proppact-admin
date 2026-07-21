@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell, Check, CheckCheck, Trash2, KeyRound, MessageSquareWarning,
-  Wrench, Scale, CreditCard, HardHat, Clock, Filter,
+  Wrench, Scale, CreditCard, HardHat, UserCheck, Clock, Filter,
 } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications.js';
 import { markAsRead, markAllAsRead, deleteNotification, TYPE_META, seedSampleNotifications } from '../../services/notificationService.js';
@@ -16,6 +16,7 @@ const ICON_MAP = {
   Scale               : Scale,
   CreditCard          : CreditCard,
   HardHat             : HardHat,
+  UserCheck           : UserCheck,
   Bell                : Bell,
 };
 
@@ -26,6 +27,7 @@ const COLOR_MAP = {
   purple: 'bg-purple-50 text-purple-500 border-purple-100',
   green : 'bg-green-50  text-green-500  border-green-100',
   amber : 'bg-amber-50  text-amber-600  border-amber-100',
+  indigo: 'bg-indigo-50 text-indigo-500 border-indigo-100',
   gray  : 'bg-gray-50   text-gray-400   border-gray-100',
 };
 
@@ -48,6 +50,7 @@ const TYPE_OPTS = [
   { value: 'legal_reminder',        label: 'Legal Reminders' },
   { value: 'subscription_reminder', label: 'Subscription Reminders' },
   { value: 'vendor_status',         label: 'Vendor Updates' },
+  { value: 'approval_request',      label: 'Approvals' },
   { value: 'general',               label: 'General' },
 ];
 

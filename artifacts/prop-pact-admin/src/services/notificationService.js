@@ -26,6 +26,7 @@ export const NOTIFICATION_TYPES = {
   LEGAL_REMINDER         : 'legal_reminder',
   SUBSCRIPTION_REMINDER  : 'subscription_reminder',
   VENDOR_STATUS          : 'vendor_status',
+  APPROVAL_REQUEST       : 'approval_request',
   GENERAL                : 'general',
 };
 
@@ -36,6 +37,7 @@ export const TYPE_META = {
   legal_reminder        : { label: 'Legal Reminder',        color: 'purple', icon: 'Scale'            },
   subscription_reminder : { label: 'Subscription Reminder', color: 'green',  icon: 'CreditCard'       },
   vendor_status         : { label: 'Vendor Update',         color: 'amber',  icon: 'HardHat'          },
+  approval_request      : { label: 'Approval',              color: 'indigo', icon: 'UserCheck'        },
   general               : { label: 'General',               color: 'gray',   icon: 'Bell'             },
 };
 

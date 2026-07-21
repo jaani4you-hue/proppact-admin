@@ -76,3 +76,8 @@ Desktop.ini
 
 # Replit
 .replit.history
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
